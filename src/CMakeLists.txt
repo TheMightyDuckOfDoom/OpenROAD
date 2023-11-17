@@ -278,6 +278,7 @@ add_subdirectory(utl)
 add_subdirectory(dst)
 add_subdirectory(pdn)
 add_subdirectory(dft)
+add_subdirectory(rop)
 
 ################################################################
 
@@ -339,6 +340,7 @@ target_link_libraries(openroad
   utl
   pdn
   dft
+  rop
   ${ABC_LIBRARY}
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
@@ -420,6 +422,7 @@ if (Python3_FOUND AND BUILD_PYTHON)
     psm_py
     pdn_py
     dft_py
+    rop_py
   )
 
   if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")

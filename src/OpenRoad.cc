@@ -63,6 +63,7 @@
 #include "mpl2/MakeMacroPlacer.h"
 #endif
 #include "dft/MakeDft.hh"
+#include "rop/MakeRop.hh"
 #include "odb/cdl.h"
 #include "odb/db.h"
 #include "odb/defin.h"
@@ -155,6 +156,7 @@ OpenRoad::~OpenRoad()
   deleteDistributed(distributer_);
   deleteSteinerTreeBuilder(stt_builder_);
   dft::deleteDft(dft_);
+  rop::deleteRop(rop_);
   delete logger_;
 }
 
@@ -213,6 +215,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp)
   distributer_ = makeDistributed();
   stt_builder_ = makeSteinerTreeBuilder();
   dft_ = dft::makeDft();
+  rop_ = rop::makeRop();
 
   // Init components.
   Openroad_swig_Init(tcl_interp);
@@ -253,6 +256,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp)
   initDistributed(this);
   initSteinerTreeBuilder(this);
   dft::initDft(this);
+  rop::initRop(this);
 
   // Import exported commands to global namespace.
   Tcl_Eval(tcl_interp, "sta::define_sta_cmds");

@@ -35,6 +35,9 @@
 
 namespace rop {
 
+typedef std::multimap<odb::Point, odb::dbShape> segment_map_t;
+typedef std::map<odb::Point, odb::dbShape> via_map_t;
+
 class Rop
 {
  public:
@@ -44,7 +47,10 @@ class Rop
 
   void optimize_net_routing(odb::dbNet* net);
  private:
+  // Helper Functions
   double dbuToMicrons(int64_t dbu);
+  void build_maps(odb::dbWire* wire, segment_map_t &segment_map, 
+  via_map_t &via_map);
 
   // Global state
   odb::dbDatabase* db_;

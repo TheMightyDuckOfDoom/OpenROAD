@@ -46,4 +46,13 @@ rop::Rop * getRop()
 %inline
 %{
 
+namespace rop {
+
+void optimize_net_routing(odb::dbNet* net)
+{
+  getRop()->optimize_net_routing(net);
+}
+
+}
+
 %}  // inline

@@ -38,6 +38,8 @@
 
 namespace rop {
 
+using utl::ROP;
+
 Rop::Rop()
 {
 }
@@ -45,7 +47,41 @@ Rop::Rop()
 void Rop::init(odb::dbDatabase* db, utl::Logger* logger)
 {
   db_ = db;
+  block_ = nullptr;
   logger_ = logger;
+}
+
+double Rop::dbuToMicrons(int64_t dbu)
+{
+  // Check if block_ is valid 
+  if (block_ == nullptr) {
+    logger_->error(ROP, 2, "dbuToMicrons: block_ is nullptr.");
+    return 0.0;
+  }
+  return (double) dbu / block_->getDbUnitsPerMicron();
+}
+
+void Rop::optimize_net_routing(odb::dbNet* net)
+{
+  // Get associated wire
+  odb::dbWire* wire = net->getWire();
+
+  // Check if wire exists
+  if (wire == nullptr) {
+    logger_->warn(
+      ROP, 3, "Net {} does not have detailed route.", net->getName());
+    return;
+  }
+
+  // Get dbBlock -> Needed in dbuToMicrons
+  block_ = db_->getChip()->getBlock();
+
+  // Print net name
+  logger_->info(ROP, 4, "Net: {}", net->getName());
+
+  // Print starting wire length
+  int64_t starting_wl = wire->getLength();
+  logger_->info(ROP, 5, "\tStarting Length: {:.2f}um", dbuToMicrons(starting_wl));
 }
 
 }  // namespace rop

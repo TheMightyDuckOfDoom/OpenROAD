@@ -27,3 +27,22 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+
+proc optimize_net_routing { args } {
+  sta::parse_key_args "optimize_net_routing" args \
+                 keys {-net} \
+                 flags {}
+
+  if { [info exists keys(-net)] } {
+    foreach net [get_nets $keys(-net)] {
+      set db_net [sta::sta_to_db_net $net]
+      if { [$db_net getSigType] != "POWER" && \
+           [$db_net getSigType] != "GROUND" && \
+           ![$db_net isSpecial]} {
+        rop::optimize_net_routing $db_net
+      }
+    }
+  } else {
+    utl::error ROP 1 "-net is required."
+  }
+}

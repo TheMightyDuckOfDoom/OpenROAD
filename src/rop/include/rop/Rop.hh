@@ -42,10 +42,13 @@ class Rop
 
   void init(odb::dbDatabase* db, utl::Logger* logger);
 
-
+  void optimize_net_routing(odb::dbNet* net);
  private:
+  double dbuToMicrons(int64_t dbu);
+
   // Global state
   odb::dbDatabase* db_;
+  odb::dbBlock* block_;
   utl::Logger* logger_;
 };
 

@@ -35,8 +35,8 @@
 
 namespace rop {
 
-typedef std::multimap<odb::Point, odb::dbShape> segment_map_t;
-typedef std::map<odb::Point, odb::dbShape> via_map_t;
+typedef std::multimap<odb::Point, std::pair<odb::Point, odb::dbShape>> segment_map_t;
+typedef std::map<odb::Point, odb::dbShape> positions_t;
 
 class Rop
 {
@@ -49,8 +49,9 @@ class Rop
  private:
   // Helper Functions
   double dbuToMicrons(int64_t dbu);
-  void build_maps(odb::dbWire* wire, segment_map_t &segment_map, 
-  via_map_t &via_map);
+  bool build_maps(odb::dbWire* wire, segment_map_t &start_to_end_map,
+    segment_map_t &end_to_start_map, positions_t &via_map);
+  bool onSegment(odb::Point p, odb::Point start, odb::Point end);
 
   // Global state
   odb::dbDatabase* db_;

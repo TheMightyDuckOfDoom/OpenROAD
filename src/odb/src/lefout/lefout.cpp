@@ -313,10 +313,20 @@ void lefout::findWireLayerObstructions(ObstructionMap& obstructions,
   dbShape shape;
 
   for (wire_shape_itr.begin(wire); wire_shape_itr.next(shape);) {
-    if (shape.isVia()) {
+    if (shape.getType() == dbShape::TECH_VIA) {
+      Point via_loc = shape.getViaXY();
+      dbTechVia *via = shape.getTechVia();
+
+      for (dbBox* box : via->getBoxes()) {
+        Rect rect = box->getBox();
+        rect.moveDelta(via_loc.x(), via_loc.y());
+        insertObstruction(box->getTechLayer(), rect, obstructions);
+      }
+    } else if (shape.isVia()) {
       continue;
+    } else {
+      insertObstruction(shape.getTechLayer(), shape.getBox(), obstructions);
     }
-    insertObstruction(shape.getTechLayer(), shape.getBox(), obstructions);
   }
 }
 

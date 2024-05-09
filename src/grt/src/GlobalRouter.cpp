@@ -2696,9 +2696,17 @@ std::vector<Pin*> GlobalRouter::getAllPorts()
 {
   std::vector<Pin*> ports;
   for (auto [ignored, net] : db_net_map_) {
-    for (Pin& pin : net->getPins()) {
-      if (pin.isPort()) {
-        ports.push_back(&pin);
+    if (net != nullptr) {
+      for (Pin& pin : net->getPins()) {
+        if (pin.isPort()) {
+          ports.push_back(&pin);
+        }
+      }
+    } else {
+      if (ignored == nullptr) {
+        logger_->info(GRT, 4322, "Net and Key in db_net_map is nullptr!");
+      } else {
+        logger_->info(GRT, 4321, "Net {} in db_net_map is nullptr!", ignored->getName());
       }
     }
   }

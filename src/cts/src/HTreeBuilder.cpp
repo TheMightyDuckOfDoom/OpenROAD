@@ -45,6 +45,9 @@
 #include "SinkClustering.h"
 #include "utl/Logger.h"
 
+template <typename T> struct fmt::formatter<cts::Box<T>> : ostream_formatter {};
+template <typename T> struct fmt::formatter<cts::Point<T>> : ostream_formatter {};
+
 namespace cts {
 
 using utl::CTS;

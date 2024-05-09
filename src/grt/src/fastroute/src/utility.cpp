@@ -39,6 +39,8 @@
 #include "odb/db.h"
 #include "utl/Logger.h"
 
+template <> struct fmt::formatter<grt::RouteType> : ostream_formatter {};
+
 namespace grt {
 
 using utl::GRT;

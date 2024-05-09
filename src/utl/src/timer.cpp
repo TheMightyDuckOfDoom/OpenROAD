@@ -35,6 +35,8 @@
 
 #include "utl/timer.h"
 
+template <> struct fmt::formatter<utl::DebugScopedTimer> : ostream_formatter {};
+
 namespace utl {
 
 void Timer::reset()

@@ -46,6 +46,8 @@
 
 #include "dpl/Opendp.h"
 
+template <typename T> struct fmt::formatter<dpl::TypedCoordinate<T>> : ostream_formatter {};
+
 namespace dpl {
 
 using std::abs;

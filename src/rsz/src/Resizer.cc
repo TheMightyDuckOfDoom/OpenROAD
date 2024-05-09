@@ -250,7 +250,6 @@ void Resizer::removeBuffers(sta::InstanceSeq insts)
   graph_delay_calc_->delaysInvalid();
   search_->arrivalsInvalid();
 
-  int num_insts = block_->getInsts().size();
   int remove_count = 0;
   if (insts.empty()) {
     // remove all the buffers

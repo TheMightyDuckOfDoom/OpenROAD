@@ -60,6 +60,8 @@
 #include "sta/Sdc.hh"
 #include "utl/Logger.h"
 
+template <> struct fmt::formatter<odb::Point> : ostream_formatter {};
+
 namespace cts {
 
 using utl::CTS;

@@ -53,6 +53,7 @@ using odb::dbInst;
 using odb::dbITerm;
 using odb::dbMPin;
 using odb::dbNet;
+using odb::dbOrientType;
 using odb::dbPlacementStatus;
 using odb::dbPowerDomain;
 using odb::dbRow;

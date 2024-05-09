@@ -793,11 +793,11 @@ void PlacerBaseVars::reset()
 
 PlacerBaseCommon::PlacerBaseCommon() = default;
 
-PlacerBase::PlacerBase(odb::dbDatabase* db,
+PlacerBase::PlacerBaseCommon(odb::dbDatabase* db,
                        dpl::Opendp* dp,
                        PlacerBaseVars pbVars,
                        utl::Logger* log)
-    : PlacerBase()
+    : PlacerBaseCommon()
 {
   db_ = db;
   dp_ = dp;

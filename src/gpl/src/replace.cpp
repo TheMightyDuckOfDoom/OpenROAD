@@ -68,7 +68,10 @@ void Replace::init(odb::dbDatabase* odb,
 {
   db_ = odb;
   sta_ = sta;
+  dp_ = dp;
+  rs_ = resizer;
   fr_ = router;
+  log_ = logger;
 }
 
 void Replace::reset()

@@ -48,6 +48,8 @@
 #include "TechChar.h"
 #include "Util.h"
 
+template <typename T> struct fmt::formatter<cts::Point<T>> : ostream_formatter {};
+
 namespace utl {
 class Logger;
 }  // namespace utl

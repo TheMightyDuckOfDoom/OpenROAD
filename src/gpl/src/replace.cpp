@@ -43,6 +43,7 @@
 #include "nesterovPlace.h"
 #include "odb/db.h"
 #include "ord/OpenRoad.hh"
+#include "dpl/Opendp.h"
 #include "placerBase.h"
 #include "routeBase.h"
 #include "rsz/Resizer.hh"
@@ -60,15 +61,14 @@ Replace::~Replace() = default;
 
 void Replace::init(odb::dbDatabase* odb,
                    sta::dbSta* sta,
+                   dpl::Opendp* dp,
                    rsz::Resizer* resizer,
                    grt::GlobalRouter* router,
                    utl::Logger* logger)
 {
   db_ = odb;
   sta_ = sta;
-  rs_ = resizer;
   fr_ = router;
-  log_ = logger;
 }
 
 void Replace::reset()
@@ -141,14 +141,14 @@ void Replace::doIncrementalPlace(int threads)
     pbVars.padRight = padRight_;
     pbVars.skipIoMode = skipIoMode_;
 
-    pbc_ = std::make_shared<PlacerBaseCommon>(db_, pbVars, log_);
+    pbc_ = std::make_shared<PlacerBaseCommon>(db_, dp_, pbVars, log_);
 
-    pbVec_.push_back(std::make_shared<PlacerBase>(db_, pbc_, log_));
+    pbVec_.push_back(std::make_shared<PlacerBase>(db_, dp_, pbc_, log_));
 
     for (auto pd : db_->getChip()->getBlock()->getPowerDomains()) {
       if (pd->getGroup()) {
         pbVec_.push_back(
-            std::make_shared<PlacerBase>(db_, pbc_, log_, pd->getGroup()));
+            std::make_shared<PlacerBase>(db_, dp_, pbc_, log_, pd->getGroup()));
       }
     }
 
@@ -165,8 +165,13 @@ void Replace::doIncrementalPlace(int threads)
   for (auto inst : block->getInsts()) {
     auto status = inst->getPlacementStatus();
     if (status == odb::dbPlacementStatus::PLACED) {
-      pbc_->dbToPb(inst)->lock();
-      ++locked_cnt;
+      auto inst_ptr = pb_->dbToPb(inst);
+      if (inst_ptr != nullptr) {
+        pb_->dbToPb(inst)->lock();
+        ++locked_cnt;
+      } else {
+        log_->info(GPL, 2345, "Failed to lock {}", inst->getName());
+      }
     } else if (!status.isPlaced()) {
       ++unplaced_cnt;
     }
@@ -219,14 +224,14 @@ void Replace::doInitialPlace()
     pbVars.padRight = padRight_;
     pbVars.skipIoMode = skipIoMode_;
 
-    pbc_ = std::make_shared<PlacerBaseCommon>(db_, pbVars, log_);
+    pbc_ = std::make_shared<PlacerBaseCommon>(db_, dp_, pbVars, log_);
 
-    pbVec_.push_back(std::make_shared<PlacerBase>(db_, pbc_, log_));
+    pbVec_.push_back(std::make_shared<PlacerBase>(db_, dp_, pbc_, log_));
 
     for (auto pd : db_->getChip()->getBlock()->getPowerDomains()) {
       if (pd->getGroup()) {
         pbVec_.push_back(
-            std::make_shared<PlacerBase>(db_, pbc_, log_, pd->getGroup()));
+            std::make_shared<PlacerBase>(db_, dp_, pbc_, log_, pd->getGroup()));
       }
     }
 
@@ -273,14 +278,14 @@ bool Replace::initNesterovPlace(int threads)
     pbVars.padRight = padRight_;
     pbVars.skipIoMode = skipIoMode_;
 
-    pbc_ = std::make_shared<PlacerBaseCommon>(db_, pbVars, log_);
+    pbc_ = std::make_shared<PlacerBaseCommon>(db_, dp_, pbVars, log_);
 
-    pbVec_.push_back(std::make_shared<PlacerBase>(db_, pbc_, log_));
+    pbVec_.push_back(std::make_shared<PlacerBase>(db_, dp_, pbc_, log_));
 
     for (auto pd : db_->getChip()->getBlock()->getPowerDomains()) {
       if (pd->getGroup()) {
         pbVec_.push_back(
-            std::make_shared<PlacerBase>(db_, pbc_, log_, pd->getGroup()));
+            std::make_shared<PlacerBase>(db_, dp_, pbc_, log_, pd->getGroup()));
       }
     }
 

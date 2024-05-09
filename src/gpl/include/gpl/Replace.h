@@ -45,6 +45,10 @@ namespace sta {
 class dbSta;
 }
 
+namespace dpl {
+class Opendp;
+};
+
 namespace grt {
 class GlobalRouter;
 }
@@ -77,6 +81,7 @@ class Replace
 
   void init(odb::dbDatabase* odb,
             sta::dbSta* sta,
+            dpl::Opendp* dp,
             rsz::Resizer* resizer,
             grt::GlobalRouter* router,
             utl::Logger* logger);
@@ -149,6 +154,7 @@ class Replace
 
   odb::dbDatabase* db_ = nullptr;
   sta::dbSta* sta_ = nullptr;
+  dpl::Opendp* dp_ = nullptr;
   rsz::Resizer* rs_ = nullptr;
   grt::GlobalRouter* fr_ = nullptr;
   utl::Logger* log_ = nullptr;

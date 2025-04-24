@@ -458,10 +458,44 @@ void RepairAntennas::repairAntennas(odb::dbMTerm* diode_mterm)
   setDiodesAndGatesPlacementStatus(odb::dbPlacementStatus::FIRM);
   getFixedInstances(fixed_insts);
 
+  {
+    int total_diode_count = 0;
+    for(const auto& net_violations : antenna_violations_) {
+      auto violations = net_violations.second;
+      for (const ant::Violation& violation : violations) {
+        total_diode_count += violation.diode_count;
+      }
+    }
+    debugPrint(logger_,
+               GRT,
+               "repair_antennas",
+               1,
+               "Total diodes to insert: {}",
+               total_diode_count);
+  }
+
   bool repair_failures = false;
+  int violation_count = 0;
   for (auto const& net_violations : antenna_violations_) {
     odb::dbNet* db_net = net_violations.first;
     auto violations = net_violations.second;
+
+    {
+      int diode_count = 0;
+      for (const ant::Violation& violation : violations) {
+        diode_count += violation.diode_count;
+      }
+      debugPrint(logger_,
+                 GRT,
+                 "repair_antennas",
+                 1,
+                 "Violation {}/{}: net {} has {} violations, adding {} diodes",
+                 ++violation_count,
+                 antenna_violations_.size(),
+                 db_net->getConstName(),
+                 violations.size(),
+                 diode_count);
+    }
 
     bool inserted_diodes = false;
     for (ant::Violation& violation : violations) {

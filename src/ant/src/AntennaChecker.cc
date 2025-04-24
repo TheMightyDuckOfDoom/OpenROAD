@@ -840,7 +840,7 @@ int AntennaChecker::checkGates(odb::dbNet* db_net,
   // How many diodes have we added to the gate
   std::map<odb::dbITerm*, int> gate_to_diode_count;
 
-  if (diode_mterm) {
+  if (diode_mterm && !db_net->isDoNotTouch()) {
     // Diffusion are of the diode
     const double diode_diff_area = diffArea(diode_mterm);
 
@@ -912,14 +912,15 @@ int AntennaChecker::checkGates(odb::dbNet* db_net,
           debugPrint(logger_,
                      ANT,
                      "check_gates",
-                     1,
+                     2,
                      "  checking with {} additional diodes to fix "
                      "on net {}",
                      additional_diode_count,
                      db_net->getConstName());
 
           // Recalculate the wire parameters
-          calculateWirePar(violation_layer, *violation_info);
+          calculatePAR(gate_info);
+          //calculateCAR(gate_info);
 
           // Check for violations again
           violated = checkPAR(db_net,
@@ -938,13 +939,17 @@ int AntennaChecker::checkGates(odb::dbNet* db_net,
                                  net_report);
 
           // Check if we have exceeded the maximum number of diodes
-          if (additional_diode_count >= 100) {
-            logger_->warn(ANT,
-                          305,
-                          "Net {} requires more than {} diodes per gate to "
-                          "repair violations.",
-                          db_net->getConstName(),
-                          additional_diode_count);
+          if (additional_diode_count
+              >= max_diode_count_per_gate * violation_info->iterms.size()) {
+            logger_->warn(
+                ANT,
+                305,
+                "Net {} requires more than {} diodes to "
+                "repair violations, more than {} for each of the {} gates.",
+                db_net->getConstName(),
+                additional_diode_count,
+                max_diode_count_per_gate,
+                violation_info->iterms.size());
             break;
           }
         }

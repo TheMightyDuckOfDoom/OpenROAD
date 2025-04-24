@@ -844,65 +844,70 @@ int AntennaChecker::checkGates(odb::dbNet* db_net,
     // Diffusion are of the diode
     const double diode_diff_area = diffArea(diode_mterm);
 
-    for (auto& [original_violation_info, layer] : violation_to_layer) {
+    for (auto& [violation_info, violation_layer] : violation_to_layer) {
       // If no gates in this violation, skip
-      if (original_violation_info->iterms.empty()) {
+      if (violation_info->iterms.empty()) {
         logger_->warn(ANT,
                       304,
                       "No gates found in violation info for net {} on layer {}",
                       db_net->getConstName(),
-                      layer->getConstName());
+                      violation_layer->getConstName());
 
         continue;
       }
 
-      // Step 1: Get the diode count for this violation
-      int diode_count = 0;
-
-      // Check all gates inside the violation for their diode count
-      // This prevents us from adding unecessary diodes
-      for (const auto& gate : original_violation_info->iterms) {
-        if (gate_to_diode_count.find(gate) != gate_to_diode_count.end()) {
-          diode_count += gate_to_diode_count[gate];
-        }
-      }
-
-      // Make a copy of the original violation_info, as we modify the diffusion
-      // area
-      NodeInfo violation_info = *original_violation_info;
-
-      // Add the diode diffusion area
-      violation_info.iterm_diff_area += diode_count * diode_diff_area;
-
-      debugPrint(logger_,
-                 ANT,
-                 "check_gates",
-                 1,
-                 "  {} diodes already added to fix violation on layer {} "
-                 "on net {}",
-                 diode_count,
-                 layer->getConstName(),
-                 db_net->getConstName());
-
-      // Step 2: Check if there is a violation
-      bool violated = checkRatioViolations(db_net,
-                                           layer,
-                                           violation_info,
-                                           ratio_margin,
-                                           false,
-                                           false,
-                                           net_report);
+      // Step 1: Check if there is a violation
+      bool violated = checkPAR(db_net,
+                               violation_layer,
+                               *violation_info,
+                               ratio_margin,
+                               false,
+                               false,
+                               net_report)
+                      || checkPSR(db_net,
+                                  violation_layer,
+                                  *violation_info,
+                                  ratio_margin,
+                                  false,
+                                  false,
+                                  net_report);
+      // bool violated = checkRatioViolations(db_net,
+      //                                      layer,
+      //                                      violation_info,
+      //                                      ratio_margin,
+      //                                      false,
+      //                                      false,
+      //                                      net_report);
 
       // How many new diodes do we need to add for this violation?
       int additional_diode_count = 0;
       {
-        // Step 3: Loop until we no longer have a violation or we exceed the
+        // Step 2: Loop until we no longer have a violation or we exceed the
         // maximum
         // TODO: We should be able to calculate the number of diodes needed
+        int gate_idx = 0;
         while (violated) {
-          // Add the diode diffusion area
-          violation_info.iterm_diff_area += diode_diff_area;
+          // Increment the diode count for gate at gate_idx
           additional_diode_count++;
+          odb::dbITerm* gate = violation_info->iterms[gate_idx];
+          if (gate_to_diode_count.find(gate) != gate_to_diode_count.end()) {
+            // Gate is already in the map, update the count
+            gate_to_diode_count[gate] += 1;
+          } else {
+            // New gate, add it to the map
+            gate_to_diode_count[gate] = 1;
+          }
+
+          // Update all difusion areas that contain this gate
+          for (auto& info : gate_info[gate]) {
+            // Update the diffusion area
+            info.second.iterm_diff_area += diode_diff_area;
+          }
+
+          // Increment the gate_idx, wrap around to first gate if needed
+          gate_idx = (gate_idx + 1) >= (int) violation_info->iterms.size()
+                         ? 0
+                         : gate_idx + 1;
 
           debugPrint(logger_,
                      ANT,
@@ -914,16 +919,23 @@ int AntennaChecker::checkGates(odb::dbNet* db_net,
                      db_net->getConstName());
 
           // Recalculate the wire parameters
-          calculateWirePar(layer, violation_info);
+          calculateWirePar(violation_layer, *violation_info);
 
           // Check for violations again
-          violated = checkRatioViolations(db_net,
-                                          layer,
-                                          violation_info,
-                                          ratio_margin,
-                                          false,
-                                          false,
-                                          net_report);
+          violated = checkPAR(db_net,
+                              violation_layer,
+                              *violation_info,
+                              ratio_margin,
+                              false,
+                              false,
+                              net_report)
+                     || checkPSR(db_net,
+                                 violation_layer,
+                                 *violation_info,
+                                 ratio_margin,
+                                 false,
+                                 false,
+                                 net_report);
 
           // Check if we have exceeded the maximum number of diodes
           if (additional_diode_count >= 100) {
@@ -936,14 +948,6 @@ int AntennaChecker::checkGates(odb::dbNet* db_net,
             break;
           }
         }
-      }
-      {
-        // Step 4: Distribute the diode count to all gates inside the violation
-        // TOOD: This should also check the diodes already added to the gate,
-        // such that the number of diodes for all gates is averaged out
-        const int additional_diode_count_per_gate = std::max(
-            1, additional_diode_count / (int) violation_info.iterms.size());
-
         debugPrint(logger_,
                    ANT,
                    "check_gates",
@@ -951,41 +955,15 @@ int AntennaChecker::checkGates(odb::dbNet* db_net,
                    "  {} additional diodes needed to fix violation on layer {} "
                    "on net {}",
                    additional_diode_count,
-                   layer->getConstName(),
+                   violation_layer->getConstName(),
                    db_net->getConstName());
-
-        int diodes_added = 0;
-        for (const auto& gate : violation_info.iterms) {
-          // How many diodes can we add to this gate?
-          int diodes_increment
-              = std::min(additional_diode_count_per_gate,
-                         additional_diode_count - diodes_added);
-
-          // If we have already added diodes to this gate, stop
-          if (diodes_increment <= 0) {
-            break;
-          }
-
-          // Increment the diode count
-          diodes_added += diodes_increment;
-
-          if (gate_to_diode_count.find(gate) != gate_to_diode_count.end()) {
-            // Gate is already in the map, update the count
-            gate_to_diode_count[gate] += diodes_increment;
-          } else {
-            // New gate, add it to the map
-            gate_to_diode_count[gate] = diodes_increment;
-          }
-        }
-
-        assert(diodes_added == additional_diode_count);
       }
     }
   }
 
   // Pass 2: Distribute the diode count of the gates to the violations
   // Greedily assign diodes to the violation
-  for (const auto& [violation_info, layer] : violation_to_layer) {
+  for (const auto& [violation_info, violation_layer] : violation_to_layer) {
     // Get the diode count for this violation
     int diode_count = 0;
 
@@ -1002,6 +980,7 @@ int AntennaChecker::checkGates(odb::dbNet* db_net,
 
     // Add the violation to the list
     std::vector<odb::dbITerm*> gates;
+    gates.reserve(violation_info->iterms.size());
     for (const auto& gate : violation_info->iterms) {
       gates.push_back(gate);
     }
@@ -1010,7 +989,7 @@ int AntennaChecker::checkGates(odb::dbNet* db_net,
       assert(!gates.empty());
     }
     antenna_violations.push_back(
-        {layer->getRoutingLevel(), std::move(gates), diode_count});
+        {violation_layer->getRoutingLevel(), std::move(gates), diode_count});
 
     // Print the violation info
     debugPrint(logger_,
@@ -1020,12 +999,11 @@ int AntennaChecker::checkGates(odb::dbNet* db_net,
                "  {} diodes needed to fix violation #{} on layer {} on net {}",
                diode_count,
                antenna_violations.size(),
-               layer->getConstName(),
+               violation_layer->getConstName(),
                db_net->getConstName());
   }
 
   // Make sure that all diodes have been added to violations
-  bool missed_diodes = false;
   for (const auto& [gate, diode_count] : gate_to_diode_count) {
     if (diode_count > 0) {
       logger_->warn(ANT,
@@ -1033,10 +1011,9 @@ int AntennaChecker::checkGates(odb::dbNet* db_net,
                     "Gate {} has {} diodes that were not added to a violation.",
                     gate->getInst()->getConstName(),
                     diode_count);
-      missed_diodes = true;
     }
+    assert(diode_count == 0);
   }
-  assert(!missed_diodes);
 
   // Make sure that all violations have been added to the list
   assert(antenna_violations.size() == violation_to_layer.size());
@@ -1084,7 +1061,8 @@ void AntennaChecker::buildLayerMaps(odb::dbNet* db_net,
           }
         } else if (upper_index.size() > 2) {
           std::string log_error = fmt::format(
-              "ERROR: net {} has via on {} conect with multiple wires on layer "
+              "ERROR: net {} has via on {} conect with multiple wires on "
+              "layer "
               "{} \n",
               db_net->getConstName(),
               layer_it.first->getName(),
@@ -1099,7 +1077,8 @@ void AntennaChecker::buildLayerMaps(odb::dbNet* db_net,
           }
         } else if (lower_index.size() > 2) {
           std::string log_error = fmt::format(
-              "ERROR: net {} has via on {} conect with multiple wires on layer "
+              "ERROR: net {} has via on {} conect with multiple wires on "
+              "layer "
               "{} \n",
               db_net->getConstName(),
               layer_it.first->getName(),

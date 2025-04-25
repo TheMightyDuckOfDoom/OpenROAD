@@ -460,7 +460,7 @@ void RepairAntennas::repairAntennas(odb::dbMTerm* diode_mterm)
 
   {
     int total_diode_count = 0;
-    for(const auto& net_violations : antenna_violations_) {
+    for (const auto& net_violations : antenna_violations_) {
       auto violations = net_violations.second;
       for (const ant::Violation& violation : violations) {
         total_diode_count += violation.diode_count;

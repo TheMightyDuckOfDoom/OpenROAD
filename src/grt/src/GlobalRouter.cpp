@@ -392,6 +392,13 @@ int GlobalRouter::repairAntennas(odb::dbMTerm* diode_mterm,
   int itr = 0;
   std::vector<odb::dbNet*> nets_to_repair;
   for (odb::dbNet* db_net : block_->getNets()) {
+    if (db_net->isDoNotTouch()) {
+      logger_->warn(GRT,
+                    280,
+                    "Net {} is marked as do not touch. Skipping antenna repair "
+                    "for this net.",
+                    db_net->getConstName());
+    }
     nets_to_repair.push_back(db_net);
   }
 

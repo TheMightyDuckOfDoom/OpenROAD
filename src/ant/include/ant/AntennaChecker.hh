@@ -45,14 +45,28 @@ struct NodeInfo
 
   std::vector<odb::dbITerm*> iterms;
 
+  odb::dbTechLayer* layer;
+
   NodeInfo& operator+=(const NodeInfo& a)
   {
-    PAR += a.PAR;
-    PSR += a.PSR;
-    diff_PAR += a.diff_PAR;
-    diff_PSR += a.diff_PSR;
+    assert(layer == a.layer);
+
+    // PAR += a.PAR;
+    // PSR += a.PSR;
+    // diff_PAR += a.diff_PAR;
+    // diff_PSR += a.diff_PSR;
     area += a.area;
     side_area += a.side_area;
+    iterm_gate_area += a.iterm_gate_area;
+    iterm_diff_area += a.iterm_diff_area;
+
+    for (auto iterm : a.iterms) {
+      if (std::find(iterms.begin(), iterms.end(), iterm) != iterms.end()) {
+        continue;
+      }
+      iterms.push_back(iterm);
+    }
+
     return *this;
   }
   NodeInfo()
@@ -151,14 +165,10 @@ class AntennaChecker
                  LayerToGraphNodes& node_by_layer_map,
                  int node_count);
   void calculateAreas(const LayerToGraphNodes& node_by_layer_map,
-                      GateToLayerToNodeInfo& gate_info,
                       std::vector<NodeInfo>& node_info_list);
-  void calculatePAR(GateToLayerToNodeInfo& gate_info,
-                    std::vector<NodeInfo>& node_info_list);
-  void calculateCAR(GateToLayerToNodeInfo& gate_info,
-                    std::vector<NodeInfo>& node_info_list);
+  void calculatePAR(std::vector<NodeInfo>& node_info_list);
+  void calculateCAR(std::vector<NodeInfo>& node_info_list);
   bool checkRatioViolations(odb::dbNet* db_net,
-                            odb::dbTechLayer* layer,
                             NodeInfo& node_info,
                             float ratio_margin,
                             bool verbose,
@@ -171,33 +181,28 @@ class AntennaChecker
                  bool save_report,
                  odb::dbMTerm* diode_mterm,
                  float ratio_margin,
-                 GateToLayerToNodeInfo& gate_info,
                  std::vector<NodeInfo>& node_info_list,
                  Violations& antenna_violations);
-  void calculateViaPar(odb::dbTechLayer* tech_layer, NodeInfo& info);
-  void calculateWirePar(odb::dbTechLayer* tech_layer, NodeInfo& info);
+  void calculateViaPar(NodeInfo& info);
+  void calculateWirePar(NodeInfo& info);
   bool checkPAR(odb::dbNet* db_net,
-                odb::dbTechLayer* tech_layer,
                 NodeInfo& info,
                 float ratio_margin,
                 bool verbose,
                 bool report,
                 ViolationReport& net_report);
   bool checkPSR(odb::dbNet* db_net,
-                odb::dbTechLayer* tech_layer,
                 NodeInfo& info,
                 float ratio_margin,
                 bool verbose,
                 bool report,
                 ViolationReport& net_report);
   bool checkCAR(odb::dbNet* db_net,
-                odb::dbTechLayer* tech_layer,
                 const NodeInfo& info,
                 bool verbose,
                 bool report,
                 ViolationReport& net_report);
   bool checkCSR(odb::dbNet* db_net,
-                odb::dbTechLayer* tech_layer,
                 const NodeInfo& info,
                 bool verbose,
                 bool report,
@@ -214,7 +219,7 @@ class AntennaChecker
   std::map<odb::dbNet*, ViolationReport> net_to_report_;
   std::mutex map_mutex_;
   // consts
-  static constexpr int max_diode_count_per_gate = 1000;
+  static constexpr int max_diode_count_per_gate = 10;
 };
 
 }  // namespace ant

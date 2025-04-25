@@ -599,44 +599,49 @@ bool AntennaChecker::checkPAR(odb::dbNet* db_net,
   odb::dbTechLayerAntennaRule::pwl_pair diffPAR = antenna_rule->getDiffPAR();
   double diff_PAR_PWL_ratio = getPwlFactor(diffPAR, info.iterm_diff_area, 0.0);
   bool violation = false;
+  bool diff_violation = false;
 
   // apply ratio_margin
   PAR_ratio *= (1.0 - ratio_margin / 100.0);
   diff_PAR_PWL_ratio *= (1.0 - ratio_margin / 100.0);
 
-  // check PAR or diff_PAR
-  if (info.iterm_diff_area == 0) {
+  // check PAR and diff_PAR
+  if (PAR_ratio != 0) {
     // Is only a violation if it is not connected to a diffusion
-    if (PAR_ratio != 0) {
+    if (info.iterm_diff_area == 0) {
       violation = info.PAR > PAR_ratio;
-      if (report) {
-        std::string par_report = fmt::format(
-            "      Partial area ratio: {:7.2f}\n      Required ratio: "
-            "{:7.2f} "
-            "(Gate area) {}",
-            info.PAR,
-            PAR_ratio,
-            violation ? "(VIOLATED)" : "");
-        net_report.report += par_report + "\n";
-      }
-    }
-  } else {
-    if (diff_PAR_PWL_ratio != 0) {
-      violation = info.diff_PAR > diff_PAR_PWL_ratio;
-      if (report) {
-        std::string diff_par_report = fmt::format(
-            "      Partial diffusion area ratio: {:7.2f}\n      Required "
-            "ratio: "
-            "{:7.2f} "
-            "(Gate area) {}",
-            info.diff_PAR,
-            diff_PAR_PWL_ratio,
-            violation ? "(VIOLATED)" : "");
-        net_report.report += diff_par_report + "\n";
-      }
     }
   }
-  return violation;
+  if (report) {
+    std::string par_report = fmt::format(
+        "      Partial area ratio: {:7.2f}\n      Required "
+        "ratio: "
+        "{:7.2f} "
+        "(Gate area){}{}",
+        info.PAR,
+        PAR_ratio,
+        violation ? " (VIOLATED)" : "",
+        info.iterm_diff_area != 0 ? " (ignored as connected Diffusion area > 0)"
+                                  : "");
+    net_report.report += par_report + "\n";
+  }
+  if (diff_PAR_PWL_ratio != 0) {
+    // This is always checked, not matter the diffusion area
+    diff_violation = info.diff_PAR > diff_PAR_PWL_ratio;
+  }
+  if (report) {
+    std::string diff_par_report = fmt::format(
+        "      Partial diffusion area ratio: {:7.2f}\n      "
+        "Required "
+        "ratio: "
+        "{:7.2f} "
+        "(Gate area){}",
+        info.diff_PAR,
+        diff_PAR_PWL_ratio,
+        diff_violation ? " (VIOLATED)" : "");
+    net_report.report += diff_par_report + "\n";
+  }
+  return violation || diff_violation;
 }
 
 bool AntennaChecker::checkPSR(odb::dbNet* db_net,
@@ -655,44 +660,47 @@ bool AntennaChecker::checkPSR(odb::dbNet* db_net,
       = antenna_rule->getDiffPSR();
   double diff_PSR_PWL_ratio = getPwlFactor(diffPSR, info.iterm_diff_area, 0.0);
   bool violation = false;
+  bool diff_violation = false;
 
   // apply ratio_margin
   PSR_ratio *= (1.0 - ratio_margin / 100.0);
   diff_PSR_PWL_ratio *= (1.0 - ratio_margin / 100.0);
 
-  // check PSR or diff_PSR
-  if (info.iterm_diff_area == 0) {
+  // check PSR and diff_PSR
+  if (PSR_ratio != 0) {
     // Is only a violation if it is not connected to a diffusion
-    if (PSR_ratio != 0) {
+    if (info.iterm_diff_area == 0) {
       violation = info.PSR > PSR_ratio;
-      if (report) {
-        std::string psr_report = fmt::format(
-            "      Partial area ratio: {:7.2f}\n      Required ratio: "
-            "{:7.2f} "
-            "(Side area) {}",
-            info.PSR,
-            PSR_ratio,
-            violation ? "(VIOLATED)" : "");
-        net_report.report += psr_report + "\n";
-      }
-    }
-  } else {
-    if (diff_PSR_PWL_ratio != 0) {
-      violation = info.diff_PSR > diff_PSR_PWL_ratio;
-      if (report) {
-        std::string diff_psr_report = fmt::format(
-            "      Partial diffusion area ratio: {:7.2f}\n      Required "
-            "ratio: "
-            "{:7.2f} "
-            "(Side area) {}",
-            info.diff_PSR,
-            diff_PSR_PWL_ratio,
-            violation ? "(VIOLATED)" : "");
-        net_report.report += diff_psr_report + "\n";
-      }
     }
   }
-  return violation;
+  if (report) {
+    std::string psr_report = fmt::format(
+        "      Partial area ratio: {:7.2f}\n      Required ratio: "
+        "{:7.2f} "
+        "(Side area){}{}",
+        info.PSR,
+        PSR_ratio,
+        violation ? " (VIOLATED)" : "",
+        info.iterm_diff_area != 0 ? " (ignored as connected Diffusion area > 0)"
+                                  : "");
+    net_report.report += psr_report + "\n";
+  }
+  if (diff_PSR_PWL_ratio != 0) {
+    // This is always checked, not matter the diffusion area
+    diff_violation = info.diff_PSR > diff_PSR_PWL_ratio;
+  }
+  if (report) {
+    std::string diff_psr_report = fmt::format(
+        "      Partial diffusion area ratio: {:7.2f}\n      Required "
+        "ratio: "
+        "{:7.2f} "
+        "(Side area){}",
+        info.diff_PSR,
+        diff_PSR_PWL_ratio,
+        diff_violation ? " (VIOLATED)" : "");
+    net_report.report += diff_psr_report + "\n";
+  }
+  return violation || diff_violation;
 }
 
 bool AntennaChecker::checkCAR(odb::dbNet* db_net,
@@ -711,40 +719,43 @@ bool AntennaChecker::checkCAR(odb::dbNet* db_net,
   const double diff_CAR_PWL_ratio
       = getPwlFactor(diffCAR, info.iterm_diff_area, 0);
   bool violation = false;
+  bool diff_violation = false;
 
-  // check CAR or diff_CAR
-  if (info.iterm_diff_area == 0) {
+  // check CAR and diff_CAR
+  if (CAR_ratio != 0) {
     // Is only a violation if it is not connected to a diffusion
-    if (CAR_ratio != 0) {
+    if (info.iterm_diff_area == 0) {
       violation = info.CAR > CAR_ratio;
-      if (report) {
-        std::string car_report = fmt::format(
-            "      Cumulative area ratio: {:7.2f}\n      Required ratio: "
-            "{:7.2f} "
-            "(Cumulative area) {}",
-            info.CAR,
-            CAR_ratio,
-            violation ? "(VIOLATED)" : "");
-        net_report.report += car_report + "\n";
-      }
-    }
-  } else {
-    if (diff_CAR_PWL_ratio != 0) {
-      violation = info.diff_CAR > diff_CAR_PWL_ratio;
-      if (report) {
-        std::string diff_car_report = fmt::format(
-            "      Cumulative diffusion area ratio: {:7.2f}\n      Required "
-            "ratio: "
-            "{:7.2f} "
-            "(Cumulative area) {}",
-            info.diff_CAR,
-            diff_CAR_PWL_ratio,
-            violation ? "(VIOLATED)" : "");
-        net_report.report += diff_car_report + "\n";
-      }
     }
   }
-  return violation;
+  if (report) {
+    std::string car_report = fmt::format(
+        "      Cumulative area ratio: {:7.2f}\n      Required ratio: "
+        "{:7.2f} "
+        "(Cumulative area){}{}",
+        info.CAR,
+        CAR_ratio,
+        violation ? " (VIOLATED)" : "",
+        info.iterm_diff_area != 0 ? " (ignored as connected Diffusion area > 0)"
+                                  : "");
+    net_report.report += car_report + "\n";
+  }
+  if (diff_CAR_PWL_ratio != 0) {
+    // This is always checked, not matter the diffusion area
+    diff_violation = info.diff_CAR > diff_CAR_PWL_ratio;
+  }
+  if (report) {
+    std::string diff_car_report = fmt::format(
+        "      Cumulative diffusion area ratio: {:7.2f}\n      Required "
+        "ratio: "
+        "{:7.2f} "
+        "(Cumulative area){}",
+        info.diff_CAR,
+        diff_CAR_PWL_ratio,
+        diff_violation ? " (VIOLATED)" : "");
+    net_report.report += diff_car_report + "\n";
+  }
+  return violation || diff_violation;
 }
 
 bool AntennaChecker::checkCSR(odb::dbNet* db_net,
@@ -763,40 +774,43 @@ bool AntennaChecker::checkCSR(odb::dbNet* db_net,
   const double diff_CSR_PWL_ratio
       = getPwlFactor(diffCSR, info.iterm_diff_area, 0);
   bool violation = false;
+  bool diff_violation = false;
 
-  // check CSR or diff_CSR
-  if (info.iterm_diff_area == 0) {
+  // check CSR and diff_CSR
+  if (CSR_ratio != 0) {
     // Is only a violation if it is not connected to a diffusion
-    if (CSR_ratio != 0) {
+    if (info.iterm_diff_area == 0) {
       violation = info.CSR > CSR_ratio;
-      if (report) {
-        std::string csr_report = fmt::format(
-            "      Cumulative area ratio: {:7.2f}\n      Required ratio: "
-            "{:7.2f} "
-            "(Cumulative side area) {}",
-            info.CSR,
-            CSR_ratio,
-            violation ? "(VIOLATED)" : "");
-        net_report.report += csr_report + "\n";
-      }
-    }
-  } else {
-    if (diff_CSR_PWL_ratio != 0) {
-      violation = info.diff_CSR > diff_CSR_PWL_ratio;
-      if (report) {
-        std::string diff_csr_report = fmt::format(
-            "      Cumulative diffusion area ratio: {:7.2f}\n      Required "
-            "ratio: "
-            "{:7.2f} "
-            "(Cumulative side area) {}",
-            info.diff_CSR,
-            diff_CSR_PWL_ratio,
-            violation ? "(VIOLATED)" : "");
-        net_report.report += diff_csr_report + "\n";
-      }
     }
   }
-  return violation;
+  if (report) {
+    std::string csr_report = fmt::format(
+        "      Cumulative area ratio: {:7.2f}\n      Required ratio: "
+        "{:7.2f} "
+        "(Cumulative side area){}{}",
+        info.CSR,
+        CSR_ratio,
+        violation ? " (VIOLATED)" : "",
+        info.iterm_diff_area != 0 ? " (ignored as connected Diffusion area > 0)"
+                                  : "");
+    net_report.report += csr_report + "\n";
+  }
+  if (diff_CSR_PWL_ratio != 0) {
+    // This is always checked, not matter the diffusion area
+    diff_violation = info.diff_CSR > diff_CSR_PWL_ratio;
+  }
+  if (report) {
+    std::string diff_csr_report = fmt::format(
+        "      Cumulative diffusion area ratio: {:7.2f}\n      Required "
+        "ratio: "
+        "{:7.2f} "
+        "(Cumulative side area) {}",
+        info.diff_CSR,
+        diff_CSR_PWL_ratio,
+        diff_violation ? "(VIOLATED)" : "");
+    net_report.report += diff_csr_report + "\n";
+  }
+  return violation || diff_violation;
 }
 
 bool AntennaChecker::checkRatioViolations(odb::dbNet* db_net,

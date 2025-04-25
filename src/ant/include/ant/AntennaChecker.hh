@@ -51,10 +51,6 @@ struct NodeInfo
   {
     assert(layer == a.layer);
 
-    // PAR += a.PAR;
-    // PSR += a.PSR;
-    // diff_PAR += a.diff_PAR;
-    // diff_PSR += a.diff_PSR;
     area += a.area;
     side_area += a.side_area;
     iterm_gate_area += a.iterm_gate_area;

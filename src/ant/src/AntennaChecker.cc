@@ -539,8 +539,8 @@ void AntennaChecker::calculateCAR(std::vector<NodeInfo>& node_info_list)
 
   // Loop from lowest layer to highest layer
   while (iter_layer) {
-    // next Layer
-    odb::dbTechLayer* previous_layer = iter_layer->getLowerLayer();
+    // lower Layer
+    odb::dbTechLayer* lower_layer = iter_layer->getLowerLayer();
 
     // Loop over all nodes in this layer, add the PAR of the lower connected
     // nodes
@@ -551,7 +551,7 @@ void AntennaChecker::calculateCAR(std::vector<NodeInfo>& node_info_list)
       node_info->diff_CAR = node_info->diff_PAR;
       node_info->diff_CSR = node_info->diff_PSR;
 
-      for (NodeInfo* lower_node_info : layer_to_node_info[previous_layer]) {
+      for (NodeInfo* lower_node_info : layer_to_node_info[lower_layer]) {
         // Check if the node is connected to the lower layer -> share atleast
         // one gate
         // TODO: This might be wrong
@@ -608,7 +608,6 @@ bool AntennaChecker::checkPAR(odb::dbNet* db_net,
   if (info.iterm_diff_area == 0) {
     // Is only a violation if it is not connected to a diffusion
     if (PAR_ratio != 0) {
-      // Only a violation if it is not connected to a diffusion
       violation = info.PAR > PAR_ratio;
       if (report) {
         std::string par_report = fmt::format(
@@ -854,8 +853,6 @@ int AntennaChecker::checkGates(odb::dbNet* db_net,
                                Violations& antenna_violations)
 {
   int pin_violation_count = 0;
-
-  // GateToViolationLayers gates_with_violations;
 
   std::map<odb::dbITerm*, std::vector<NodeInfo*>> gate_to_nodes;
   std::map<NodeInfo*, ViolationReport> node_reports;

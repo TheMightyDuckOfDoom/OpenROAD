@@ -108,13 +108,15 @@ struct Violation
   int diode_count;
 };
 
-using LayerToNodeInfo = std::map<odb::dbTechLayer*, size_t>;
 using GraphNodes = std::vector<std::unique_ptr<GraphNode>>;
 using LayerToGraphNodes = std::map<odb::dbTechLayer*, GraphNodes>;
-using GateToLayerToNodeInfo = std::map<odb::dbITerm*, LayerToNodeInfo>;
 using Violations = std::vector<Violation>;
-using GateToViolationLayers
-    = std::map<odb::dbITerm*, std::set<odb::dbTechLayer*>>;
+using NodeInfoList = std::vector<NodeInfo>;
+using NodeInfoPtrList = std::vector<NodeInfo*>;
+using GatesToNodes = std::map<odb::dbITerm*, NodeInfoPtrList>;
+using LayerToNodes = std::map<odb::dbTechLayer*, NodeInfoPtrList>;
+using NodesToReport = std::map<NodeInfo*, ViolationReport>;
+using GateToDiodeCount = std::map<odb::dbITerm*, int>;
 
 class AntennaChecker
 {
@@ -161,9 +163,9 @@ class AntennaChecker
                  LayerToGraphNodes& node_by_layer_map,
                  int node_count);
   void calculateAreas(const LayerToGraphNodes& node_by_layer_map,
-                      std::vector<NodeInfo>& node_info_list);
-  void calculatePAR(std::vector<NodeInfo>& node_info_list);
-  void calculateCAR(std::vector<NodeInfo>& node_info_list);
+                      NodeInfoList& node_info_list);
+  void calculatePAR(NodeInfoList& node_info_list);
+  void calculateCAR(LayerToNodes& layer_to_node_info);
   bool checkRatioViolations(odb::dbNet* db_net,
                             NodeInfo& node_info,
                             float ratio_margin,
@@ -177,7 +179,8 @@ class AntennaChecker
                  bool save_report,
                  odb::dbMTerm* diode_mterm,
                  float ratio_margin,
-                 std::vector<NodeInfo>& node_info_list,
+                 NodeInfoList& node_info_list,
+                 LayerToNodes& layer_to_nodes,
                  Violations& antenna_violations);
   void calculateViaPar(NodeInfo& info);
   void calculateWirePar(NodeInfo& info);

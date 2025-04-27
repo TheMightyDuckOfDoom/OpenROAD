@@ -391,31 +391,33 @@ void AntennaChecker::calculateAreas(const LayerToGraphNodes& node_by_layer_map,
 
       // If we have the same layer and share the same gates, then we can merge
       bool can_merge = false;
-      // for (NodeInfo& other_info : node_info_list) {
-      //   // Check if the layer is the same
-      //   if (other_info.layer != info.layer) {
-      //     continue;
-      //   }
+      
+      // TODO: This might be wrong
+      for (NodeInfo& other_info : node_info_list) {
+        // Check if the layer is the same
+        if (other_info.layer != info.layer) {
+          continue;
+        }
 
-      //   if(info.iterms.size() == other_info.iterms.size()) {
-      //     can_merge = true;
-      //     for (odb::dbITerm* gate : info.iterms) {
-      //       // If we cannot find the gate in the other node, then we cannot merge
-      //       if (std::find(
-      //               other_info.iterms.begin(), other_info.iterms.end(), gate)
-      //           == other_info.iterms.end()) {
-      //         can_merge = false;
-      //         break;
-      //       }
-      //     }
-      //   }
+        if(info.iterms.size() == other_info.iterms.size()) {
+          can_merge = true;
+          for (odb::dbITerm* gate : info.iterms) {
+            // If we cannot find the gate in the other node, then we cannot merge
+            if (std::find(
+                    other_info.iterms.begin(), other_info.iterms.end(), gate)
+                == other_info.iterms.end()) {
+              can_merge = false;
+              break;
+            }
+          }
+        }
 
-      //   // Merge it with the other node
-      //   if (can_merge) {
-      //     other_info += info;
-      //     break;
-      //   }
-      // }
+        // Merge it with the other node
+        if (can_merge) {
+          other_info += info;
+          break;
+        }
+      }
 
       // Add node to list if we have not merged it with another node
       if (!can_merge) {

@@ -41,18 +41,18 @@ struct AntennaModel
 {
   odb::dbTechLayer* layer;
 
-  double metal_factor;
-  double diff_metal_factor;
+  double area_factor;
+  double diff_area_factor;
 
-  double cut_factor;
-  double diff_cut_factor;
+  // double cut_factor;
+  // double diff_cut_factor;
 
-  double side_metal_factor;
-  double diff_side_metal_factor;
+  double side_factor;
+  double diff_side_factor;
 
   double minus_diff_factor;
   double plus_diff_factor;
-  double diff_metal_reduce_factor;
+  // double diff_metal_reduce_factor;
 };
 
 extern "C" {
@@ -90,39 +90,27 @@ void AntennaChecker::initAntennaRules()
   }
 
   for (odb::dbTechLayer* tech_layer : tech->getLayers()) {
-    double metal_factor = 1.0;
-    double diff_metal_factor = 1.0;
+    double area_factor = 1.0;
+    double diff_area_factor = 1.0;
 
-    double cut_factor = 1.0;
-    double diff_cut_factor = 1.0;
-
-    double side_metal_factor = 1.0;
-    double diff_side_metal_factor = 1.0;
+    double side_factor = 1.0;
+    double diff_side_factor = 1.0;
 
     double minus_diff_factor = 0.0;
     double plus_diff_factor = 0.0;
-    double diff_metal_reduce_factor = 1.0;
 
     if (tech_layer->hasDefaultAntennaRule()) {
       const odb::dbTechLayerAntennaRule* antenna_rule
           = tech_layer->getDefaultAntennaRule();
 
-      if (antenna_rule->isAreaFactorDiffUseOnly()) {
-        diff_metal_factor = antenna_rule->getAreaFactor();
-
-        diff_cut_factor = antenna_rule->getAreaFactor();
-      } else {
-        metal_factor = antenna_rule->getAreaFactor();
-        diff_metal_factor = antenna_rule->getAreaFactor();
-
-        cut_factor = antenna_rule->getAreaFactor();
-        diff_cut_factor = antenna_rule->getAreaFactor();
+      diff_area_factor = antenna_rule->getAreaFactor();
+      if(!antenna_rule->isAreaFactorDiffUseOnly()) {
+        area_factor = diff_area_factor;
       }
-      if (antenna_rule->isSideAreaFactorDiffUseOnly()) {
-        diff_side_metal_factor = antenna_rule->getSideAreaFactor();
-      } else {
-        side_metal_factor = antenna_rule->getSideAreaFactor();
-        diff_side_metal_factor = antenna_rule->getSideAreaFactor();
+
+      diff_side_factor = antenna_rule->getSideAreaFactor();
+      if(!antenna_rule->isSideAreaFactorDiffUseOnly()) {
+        side_factor = diff_side_factor;
       }
 
       minus_diff_factor = antenna_rule->getAreaMinusDiffFactor();
@@ -150,15 +138,12 @@ void AntennaChecker::initAntennaRules()
     }
 
     AntennaModel layer_antenna = {tech_layer,
-                                  metal_factor,
-                                  diff_metal_factor,
-                                  cut_factor,
-                                  diff_cut_factor,
-                                  side_metal_factor,
-                                  diff_side_metal_factor,
+                                  area_factor,
+                                  diff_area_factor,
+                                  side_factor,
+                                  diff_side_factor,
                                   minus_diff_factor,
-                                  plus_diff_factor,
-                                  diff_metal_reduce_factor};
+                                  plus_diff_factor};
     layer_info_[tech_layer] = layer_antenna;
   }
 }
@@ -211,9 +196,12 @@ void AntennaChecker::saveGates(odb::dbNet* db_net,
                                LayerToGraphNodes& node_by_layer_map,
                                const int node_count)
 {
+  // Maps pins to GraphNodes id
   std::map<PinType, std::vector<int>, PinTypeCmp> pin_nbrs;
   std::vector<int> ids;
-  // iterate all instance pins
+  
+  // Connection of pins to nodes
+  // iterate all instance pins connected to this net
   for (odb::dbITerm* iterm : db_net->getITerms()) {
     odb::dbMTerm* mterm = iterm->getMTerm();
     std::string pin_name = fmt::format("  {}/{} ({})",
@@ -274,14 +262,21 @@ void AntennaChecker::saveGates(odb::dbNet* db_net,
   odb::dbTech* tech = db_->getTech();
   odb::dbTechLayer* iter = tech->findRoutingLayer(1);
   odb::dbTechLayer* lower_layer;
+  
+  // Start at the lowest layer and go up
   while (iter) {
     // iterate each node of this layer to union set
+    
+    // Iterate over all nodes in this layer
     for (auto& node_it : node_by_layer_map[iter]) {
+      // Current GraphNode
       int id_u = node_it->id;
       // if has lower layer
       lower_layer = iter->getLowerLayer();
       if (lower_layer) {
         // get lower neighbors and union
+        
+        // Check lower layer nodes
         for (const int& lower_it : node_it->low_adj) {
           int id_v = node_by_layer_map[lower_layer][lower_it]->id;
           // if they are on different sets then union
@@ -292,17 +287,25 @@ void AntennaChecker::saveGates(odb::dbNet* db_net,
       }
     }
     for (auto& node_it : node_by_layer_map[iter]) {
+      // Current GraphNode
       int id_u = node_it->id;
       // check gates in same set (first Nodes x gates)
+      
+      // For each gate
       for (const auto& gate_it : pin_nbrs) {
+        
+        // Check all the connected GraphNodes
         for (const int& nbr_id : gate_it.second) {
+          // If the current node is connected to a node that is connected to the gate
           if (dsu.find_set(id_u) == dsu.find_set(nbr_id)) {
+            // Add the gate to the node
             node_it->gates.insert(gate_it.first);
             break;
           }
         }
       }
     }
+    // Get next layer, nullptr if we are at the top layer
     iter = iter->getUpperLayer();
   }
 }
@@ -330,104 +333,6 @@ bool AntennaChecker::isValidGate(odb::dbMTerm* mterm)
   return true;
 }
 
-void AntennaChecker::calculateWirePar(NodeInfo& info)
-{
-  // get info from layer map
-  odb::dbTechLayer* tech_layer = info.layer;
-  const double diff_metal_factor = layer_info_[tech_layer].diff_metal_factor;
-  const double diff_side_metal_factor
-      = layer_info_[tech_layer].diff_side_metal_factor;
-  const double minus_diff_factor = layer_info_[tech_layer].minus_diff_factor;
-  const double plus_diff_factor = layer_info_[tech_layer].plus_diff_factor;
-
-  const double metal_factor = layer_info_[tech_layer].metal_factor;
-  const double side_metal_factor = layer_info_[tech_layer].side_metal_factor;
-
-  double diff_metal_reduce_factor = 1.0;
-  if (tech_layer->hasDefaultAntennaRule()) {
-    const odb::dbTechLayerAntennaRule* antenna_rule
-        = tech_layer->getDefaultAntennaRule();
-    diff_metal_reduce_factor = getPwlFactor(
-        antenna_rule->getAreaDiffReduce(), info.iterm_diff_area, 1.0);
-  }
-
-  info.PAR = 0.0;
-  info.PSR = 0.0;
-  info.diff_PAR = 0.0;
-  info.diff_PSR = 0.0;
-
-  if (info.iterm_gate_area != 0) {
-    if (info.iterm_diff_area != 0) {
-      // Calculate PAR
-      info.PAR = (diff_metal_factor * info.area) / info.iterm_gate_area;
-      info.PSR
-          = (diff_side_metal_factor * info.side_area) / info.iterm_gate_area;
-
-      // Calculate PSR
-      info.diff_PAR
-          = (diff_metal_factor * info.area * diff_metal_reduce_factor
-             - minus_diff_factor * info.iterm_diff_area)
-            / (info.iterm_gate_area + plus_diff_factor * info.iterm_diff_area);
-      info.diff_PSR
-          = (diff_side_metal_factor * info.side_area * diff_metal_reduce_factor
-             - minus_diff_factor * info.iterm_diff_area)
-            / (info.iterm_gate_area + plus_diff_factor * info.iterm_diff_area);
-    } else {
-      // Calculate PAR
-      info.PAR = (metal_factor * info.area) / info.iterm_gate_area;
-      info.PSR = (side_metal_factor * info.side_area) / info.iterm_gate_area;
-
-      // Calculate PSR
-      info.diff_PAR = (metal_factor * info.area * diff_metal_reduce_factor)
-                      / info.iterm_gate_area;
-      info.diff_PSR
-          = (side_metal_factor * info.side_area * diff_metal_reduce_factor)
-            / info.iterm_gate_area;
-    }
-  }
-}
-
-void AntennaChecker::calculateViaPar(NodeInfo& info)
-{
-  // get info from layer map
-  odb::dbTechLayer* tech_layer = info.layer;
-  const double diff_cut_factor = layer_info_[tech_layer].diff_cut_factor;
-  const double minus_diff_factor = layer_info_[tech_layer].minus_diff_factor;
-  const double plus_diff_factor = layer_info_[tech_layer].plus_diff_factor;
-  const double cut_factor = layer_info_[tech_layer].cut_factor;
-
-  double diff_metal_reduce_factor = 1.0;
-  if (tech_layer->hasDefaultAntennaRule()) {
-    const odb::dbTechLayerAntennaRule* antenna_rule
-        = tech_layer->getDefaultAntennaRule();
-    diff_metal_reduce_factor = getPwlFactor(
-        antenna_rule->getAreaDiffReduce(), info.iterm_diff_area, 1.0);
-  }
-
-  info.PAR = 0.0;
-  info.PSR = 0.0;
-  info.diff_PAR = 0.0;
-  info.diff_PSR = 0.0;
-
-  if (info.iterm_gate_area != 0) {
-    if (info.iterm_diff_area != 0) {
-      // Calculate PAR
-      info.PAR = (diff_cut_factor * info.area) / info.iterm_gate_area;
-      // Calculate diff_PAR
-      info.diff_PAR
-          = (diff_cut_factor * info.area * diff_metal_reduce_factor
-             - minus_diff_factor * info.iterm_diff_area)
-            / (info.iterm_gate_area + plus_diff_factor * info.iterm_diff_area);
-    } else {
-      // Calculate PAR
-      info.PAR = (cut_factor * info.area) / info.iterm_gate_area;
-      // Calculate diff_PAR
-      info.diff_PAR = (cut_factor * info.area * diff_metal_reduce_factor)
-                      / info.iterm_gate_area;
-    }
-  }
-}
-
 void AntennaChecker::calculateAreas(const LayerToGraphNodes& node_by_layer_map,
                                     NodeInfoList& node_info_list)
 {
@@ -447,7 +352,15 @@ void AntennaChecker::calculateAreas(const LayerToGraphNodes& node_by_layer_map,
           info.iterms.push_back(gate.iterm);
         }
         info.iterm_gate_area += gateArea(gate.iterm->getMTerm());
+        
+        // Add diffusion area
+        const double diff_area = diffArea(gate.iterm->getMTerm());
         info.iterm_diff_area += diffArea(gate.iterm->getMTerm());
+        if(diff_area > 0.0) {
+          // Add to the list of diffusion areas, used for merging with other nodes
+          info.diff_iterms.push_back(gate.iterm);
+          info.diff_areas.push_back(diff_area);
+        }
         gates_count++;
       }
       if (gates_count == 0) {
@@ -460,6 +373,8 @@ void AntennaChecker::calculateAreas(const LayerToGraphNodes& node_by_layer_map,
       area = block_->dbuToMicrons(area);
       area = block_->dbuToMicrons(area);
       info.area = area;
+
+      // TODO: If the pin has a ANTENNAPARTIALMETAL(SIDE)AREA or ANTENNAPARTIALCUTAREA value then we need to add that to the area
 
       // Calculate the side area of the node
       if (it.first->getRoutingLevel() != 0) {
@@ -474,31 +389,33 @@ void AntennaChecker::calculateAreas(const LayerToGraphNodes& node_by_layer_map,
       // Set the layer
       info.layer = it.first;
 
-      // If we have the same layer and share atleast one gate, then we can merge
-      // it
+      // If we have the same layer and share the same gates, then we can merge
       bool can_merge = false;
-      for (NodeInfo& other_info : node_info_list) {
-        // Check if the layer is the same
-        if (other_info.layer != info.layer) {
-          continue;
-        }
+      // for (NodeInfo& other_info : node_info_list) {
+      //   // Check if the layer is the same
+      //   if (other_info.layer != info.layer) {
+      //     continue;
+      //   }
 
-        // Check if we share a gate
-        for (odb::dbITerm* gate : info.iterms) {
-          if (std::find(
-                  other_info.iterms.begin(), other_info.iterms.end(), gate)
-              != other_info.iterms.end()) {
-            can_merge = true;
-            break;
-          }
-        }
+      //   if(info.iterms.size() == other_info.iterms.size()) {
+      //     can_merge = true;
+      //     for (odb::dbITerm* gate : info.iterms) {
+      //       // If we cannot find the gate in the other node, then we cannot merge
+      //       if (std::find(
+      //               other_info.iterms.begin(), other_info.iterms.end(), gate)
+      //           == other_info.iterms.end()) {
+      //         can_merge = false;
+      //         break;
+      //       }
+      //     }
+      //   }
 
-        // Merge it with the other node
-        if (can_merge) {
-          other_info += info;
-          break;
-        }
-      }
+      //   // Merge it with the other node
+      //   if (can_merge) {
+      //     other_info += info;
+      //     break;
+      //   }
+      // }
 
       // Add node to list if we have not merged it with another node
       if (!can_merge) {
@@ -508,15 +425,66 @@ void AntennaChecker::calculateAreas(const LayerToGraphNodes& node_by_layer_map,
   }
 }
 
-// calculate PAR and PSR of wires and vias
+void AntennaChecker::calculateNodePar(NodeInfo& info)
+{
+  info.PAR = 0.0;
+  info.PSR = 0.0;
+
+  // Nothing to do if no gate area
+  if (info.iterm_gate_area == 0) {
+    return;
+  }
+
+  // get info from layer map
+  odb::dbTechLayer* tech_layer = info.layer;
+  const double minus_diff_factor = layer_info_[tech_layer].minus_diff_factor;
+  const double plus_diff_factor = layer_info_[tech_layer].plus_diff_factor;
+
+  const double area_factor = info.iterm_diff_area == 0 ? layer_info_[tech_layer].area_factor : layer_info_[tech_layer].diff_area_factor;
+  const double side_factor = info.iterm_diff_area == 0 ? layer_info_[tech_layer].side_factor : layer_info_[tech_layer].diff_side_factor;
+
+  double diff_metal_reduce_factor = 1.0;
+  if (tech_layer->hasDefaultAntennaRule()) {
+    const odb::dbTechLayerAntennaRule* antenna_rule
+        = tech_layer->getDefaultAntennaRule();
+    diff_metal_reduce_factor = getPwlFactor(
+        antenna_rule->getAreaDiffReduce(), info.iterm_diff_area, 1.0);
+  }
+
+  logger_->info(ANT,
+              3333,
+              "Layer: {} Area: {} Side Area: {} Gate Area: {} Diffusion Area: {} Area Factor: {} Side Factor: {} Diff Metal Reduce Factor: {} Minus Diff Factor: {} Plus Diff Factor: {}\n",
+              tech_layer->getConstName(),
+              info.area,
+              info.side_area,
+              info.iterm_gate_area,
+              info.iterm_diff_area,
+              area_factor,
+              side_factor,
+              diff_metal_reduce_factor,
+              minus_diff_factor,
+              plus_diff_factor);
+
+  info.PAR = (area_factor * info.area * diff_metal_reduce_factor
+              - minus_diff_factor * info.iterm_diff_area)
+             / (info.iterm_gate_area + plus_diff_factor * info.iterm_diff_area);
+  
+  // Skip PSR calculation if the layer is a cut layer
+  if (tech_layer->getRoutingLevel() == 0) {
+    return;
+  }
+
+  // Only calculate PSR if we are not a cut layer
+  info.PSR = (side_factor * info.side_area * diff_metal_reduce_factor
+              - minus_diff_factor * info.iterm_diff_area)
+             / (info.iterm_gate_area + plus_diff_factor * info.iterm_diff_area);
+}
+
+// calculate PAR and PSR of all nodes
 void AntennaChecker::calculatePAR(NodeInfoList& node_info_list)
 {
   for (NodeInfo& node_info : node_info_list) {
-    if (node_info.layer->getRoutingLevel() == 0) {
-      calculateViaPar(node_info);
-    } else {
-      calculateWirePar(node_info);
-    }
+    calculateNodePar(node_info);
   }
 }
 
@@ -527,6 +495,8 @@ void AntennaChecker::calculateCAR(LayerToNodes& layer_to_node_info)
   assert(tech != nullptr);
   odb::dbTechLayer* iter_layer = tech->findRoutingLayer(1);
   assert(iter_layer != nullptr);
+
+  // TODO: !!!!!!!!!!!!!!This might be wrong, as routing layers and vias have to be treated seperately!!!!!!!!!!!!
 
   // Loop from lowest layer to highest layer
   while (iter_layer) {
@@ -539,12 +509,11 @@ void AntennaChecker::calculateCAR(LayerToNodes& layer_to_node_info)
       // CAR(m) = PAR(m) + CAR(m-1)
       node_info->CAR = node_info->PAR;
       node_info->CSR = node_info->PSR;
-      node_info->diff_CAR = node_info->diff_PAR;
-      node_info->diff_CSR = node_info->diff_PSR;
 
       for (NodeInfo* lower_node_info : layer_to_node_info[lower_layer]) {
         // Check if the node is connected to the lower layer -> share atleast
         // one gate
+
         bool connected = false;
         for (odb::dbITerm* gate : node_info->iterms) {
           if (std::find(lower_node_info->iterms.begin(),
@@ -560,10 +529,12 @@ void AntennaChecker::calculateCAR(LayerToNodes& layer_to_node_info)
           // Add the CAR of the lower layer to the current layer
           node_info->CAR += lower_node_info->CAR;
           node_info->CSR += lower_node_info->CSR;
-          node_info->diff_CAR += lower_node_info->diff_CAR;
-          node_info->diff_CSR += lower_node_info->diff_CSR;
         }
       }
+
+      // Truncate the values to 0
+      node_info->CAR = std::max(0.0, node_info->CAR);
+      node_info->CSR = std::max(0.0, node_info->CSR);
     }
 
     // Get next layer, nullptr if we are at the top layer
@@ -614,7 +585,7 @@ bool AntennaChecker::checkPAR(odb::dbNet* db_net,
   }
   if (diff_PAR_PWL_ratio != 0) {
     // This is always checked, not matter the diffusion area
-    diff_violation = info.diff_PAR > diff_PAR_PWL_ratio;
+    diff_violation = info.PAR > diff_PAR_PWL_ratio;
   }
   if (report) {
     std::string diff_par_report = fmt::format(
@@ -623,7 +594,7 @@ bool AntennaChecker::checkPAR(odb::dbNet* db_net,
         "ratio: "
         "{:7.2f} "
         "(Gate area){}",
-        info.diff_PAR,
+        info.PAR,
         diff_PAR_PWL_ratio,
         diff_violation ? " (VIOLATED)" : "");
     net_report.report += diff_par_report + "\n\n";
@@ -674,7 +645,7 @@ bool AntennaChecker::checkPSR(odb::dbNet* db_net,
   }
   if (diff_PSR_PWL_ratio != 0) {
     // This is always checked, not matter the diffusion area
-    diff_violation = info.diff_PSR > diff_PSR_PWL_ratio;
+    diff_violation = info.PSR > diff_PSR_PWL_ratio;
   }
   if (report) {
     std::string diff_psr_report = fmt::format(
@@ -682,7 +653,7 @@ bool AntennaChecker::checkPSR(odb::dbNet* db_net,
         "ratio: "
         "{:7.2f} "
         "(Side area){}",
-        info.diff_PSR,
+        info.PSR,
         diff_PSR_PWL_ratio,
         diff_violation ? " (VIOLATED)" : "");
     net_report.report += diff_psr_report + "\n\n";
@@ -729,7 +700,7 @@ bool AntennaChecker::checkCAR(odb::dbNet* db_net,
   }
   if (diff_CAR_PWL_ratio != 0) {
     // This is always checked, not matter the diffusion area
-    diff_violation = info.diff_CAR > diff_CAR_PWL_ratio;
+    diff_violation = info.CAR > diff_CAR_PWL_ratio;
   }
   if (report) {
     std::string diff_car_report = fmt::format(
@@ -737,7 +708,7 @@ bool AntennaChecker::checkCAR(odb::dbNet* db_net,
         "ratio: "
         "{:7.2f} "
         "(Cumulative area){}",
-        info.diff_CAR,
+        info.CAR,
         diff_CAR_PWL_ratio,
         diff_violation ? " (VIOLATED)" : "");
     net_report.report += diff_car_report + "\n\n";
@@ -784,7 +755,7 @@ bool AntennaChecker::checkCSR(odb::dbNet* db_net,
   }
   if (diff_CSR_PWL_ratio != 0) {
     // This is always checked, not matter the diffusion area
-    diff_violation = info.diff_CSR > diff_CSR_PWL_ratio;
+    diff_violation = info.CSR > diff_CSR_PWL_ratio;
   }
   if (report) {
     std::string diff_csr_report = fmt::format(
@@ -792,7 +763,7 @@ bool AntennaChecker::checkCSR(odb::dbNet* db_net,
         "ratio: "
         "{:7.2f} "
         "(Cumulative side area) {}",
-        info.diff_CSR,
+        info.CSR,
         diff_CSR_PWL_ratio,
         diff_violation ? "(VIOLATED)" : "");
     net_report.report += diff_csr_report + "\n\n";
@@ -807,6 +778,9 @@ bool AntennaChecker::checkRatioViolations(odb::dbNet* db_net,
                                           bool report,
                                           ViolationReport& net_report)
 {
+  net_report.report += fmt::format(
+      "  Area: {:7.2f}  Side Area: {:7.2f}  Gate Area: {:7.2f}  Diffusion "
+      "Area: {:7.2f}\n", node_info.area, node_info.side_area, node_info.iterm_gate_area, node_info.iterm_diff_area);
   bool node_has_violation
       = checkPAR(db_net, node_info, ratio_margin, verbose, report, net_report)
         || checkCAR(db_net, node_info, verbose, report, net_report);
@@ -1148,12 +1122,16 @@ void AntennaChecker::buildLayerMaps(odb::dbNet* db_net,
   std::map<odb::dbTechLayer*, PolygonSet> set_by_layer;
 
   wiresToPolygonSetMap(wires, set_by_layer);
-  avoidPinIntersection(db_net, set_by_layer);
+
+  //avoidPinIntersection(db_net, set_by_layer);
 
   int node_count = 0;
+  // For each polygon in a layer, create a GraphNode
   for (const auto& layer_it : set_by_layer) {
     for (const auto& pol_it : layer_it.second) {
       bool isVia = layer_it.first->getRoutingLevel() == 0;
+      // TODO: Node by Layer map contains objects of type GraphNode
+      // Unique pointer is redundant?
       node_by_layer_map[layer_it.first].push_back(
           std::make_unique<GraphNode>(node_count, isVia, pol_it));
       node_count++;
@@ -1161,15 +1139,20 @@ void AntennaChecker::buildLayerMaps(odb::dbNet* db_net,
   }
 
   // set connections between Polygons ( wire -> via -> wire)
-  std::vector<int> upper_index, lower_index;
+  
+  // Loop over all layers
   for (const auto& layer_it : set_by_layer) {
     // iterate only via layers
     if (layer_it.first->getRoutingLevel() == 0) {
       int via_index = 0;
+
+      // Loop over all polygons(vias) in this via layer
       for (const auto& via_it : layer_it.second) {
-        lower_index = findNodesWithIntersection(
+        
+        // Find polygons that intersect with the via on the upper routing layer and the lower routing layer
+        std::vector<int> lower_index = findNodesWithIntersection(
             node_by_layer_map[layer_it.first->getLowerLayer()], via_it);
-        upper_index = findNodesWithIntersection(
+        std::vector<int> upper_index = findNodesWithIntersection(
             node_by_layer_map[layer_it.first->getUpperLayer()], via_it);
 
         if (upper_index.size() <= 2) {
@@ -1179,6 +1162,7 @@ void AntennaChecker::buildLayerMaps(odb::dbNet* db_net,
                 ->low_adj.push_back(via_index);
           }
         } else if (upper_index.size() > 2) {
+          // TODO: This should never happen, as we should have merged the polygons
           std::string log_error = fmt::format(
               "ERROR: net {} has via on {} conect with multiple wires on "
               "layer "
@@ -1195,6 +1179,7 @@ void AntennaChecker::buildLayerMaps(odb::dbNet* db_net,
                 low_index);
           }
         } else if (lower_index.size() > 2) {
+          // TODO: This should never happen, as we should have merged the polygons
           std::string log_error = fmt::format(
               "ERROR: net {} has via on {} conect with multiple wires on "
               "layer "
@@ -1223,6 +1208,27 @@ int AntennaChecker::checkNet(odb::dbNet* db_net,
   if (wire) {
     LayerToGraphNodes node_by_layer_map;
     buildLayerMaps(db_net, node_by_layer_map);
+
+    for(auto& [layer, nodes] : node_by_layer_map) {
+      for (auto& node : nodes) {
+        std::string gate_names;
+        for (auto& gate : node->gates) {
+          if (gate.isITerm) {
+            gate_names += fmt::format("{}/{} ({}) ",
+                                      gate.iterm->getInst()->getConstName(),
+                                      gate.iterm->getMTerm()->getConstName(),
+                                      gate.iterm->getMTerm()->getMaster()->getConstName());
+          } else {
+            gate_names += fmt::format("{} ", gate.bterm->getConstName());
+          }
+        }
+        logger_->info(ANT,
+                   3334,
+                   "Layer: {} Connected gates: {}",
+                   layer->getConstName(),
+                   gate_names);
+      }
+    }
 
     NodeInfoList node_info_list;
     calculateAreas(node_by_layer_map, node_info_list);

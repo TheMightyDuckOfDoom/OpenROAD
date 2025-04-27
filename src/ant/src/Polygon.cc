@@ -41,6 +41,7 @@ std::vector<int> findNodesWithIntersection(const GraphNodes& graph_nodes,
   return ids;
 }
 
+// Convert wires to a polygon set per Layer
 void wiresToPolygonSetMap(odb::dbWire* wires,
                           std::map<odb::dbTechLayer*, PolygonSet>& set_by_layer)
 {
@@ -73,6 +74,7 @@ void wiresToPolygonSetMap(odb::dbWire* wires,
   }
 }
 
+// Remove the area of the pins from the polygon set
 void avoidPinIntersection(odb::dbNet* db_net,
                           std::map<odb::dbTechLayer*, PolygonSet>& set_by_layer)
 {

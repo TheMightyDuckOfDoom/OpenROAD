@@ -29,58 +29,63 @@ struct GraphNode;
 
 struct NodeInfo
 {
-  double PAR;
-  double PSR;
-  double diff_PAR;
-  double diff_PSR;
   double area;
   double side_area;
   double iterm_gate_area;
   double iterm_diff_area;
 
+  double PAR;
+  double PSR;
   double CAR;
   double CSR;
-  double diff_CAR;
-  double diff_CSR;
 
   std::vector<odb::dbITerm*> iterms;
+  std::vector<odb::dbITerm*> diff_iterms;
+  std::vector<double> diff_areas;
 
   odb::dbTechLayer* layer;
 
   NodeInfo& operator+=(const NodeInfo& a)
   {
     assert(layer == a.layer);
+    // Can only merge if we have the same gates
+    for (const auto& iterm : a.iterms) {
+      if(std::find(iterms.begin(), iterms.end(), iterm) == iterms.end()) {
+        assert(false);
+      }
+    }
+
+    // Diffusion terminals can be different, make them shared
+    assert(diff_iterms.size() == diff_areas.size());
+    assert(a.diff_iterms.size() == a.diff_areas.size());
+    size_t a_idx = 0;
+    for (const auto &a_diff_iterm : a.diff_iterms) {
+      if(std::find(diff_iterms.begin(), diff_iterms.end(), a_diff_iterm)
+             != diff_iterms.end()) {
+        diff_iterms.push_back(a_diff_iterm);
+        const double a_diff_area = a.diff_areas[a_idx];
+        diff_areas.push_back(a_diff_area);
+        iterm_diff_area += a_diff_area;
+      }
+      a_idx++;
+    }
 
     area += a.area;
     side_area += a.side_area;
-    iterm_gate_area += a.iterm_gate_area;
-    iterm_diff_area += a.iterm_diff_area;
-
-    for (auto iterm : a.iterms) {
-      if (std::find(iterms.begin(), iterms.end(), iterm) != iterms.end()) {
-        continue;
-      }
-      iterms.push_back(iterm);
-    }
 
     return *this;
   }
   NodeInfo()
   {
-    PAR = 0.0;
-    PSR = 0.0;
-    diff_PAR = 0.0;
-    diff_PSR = 0.0;
-
     area = 0.0;
     side_area = 0.0;
     iterm_gate_area = 0.0;
     iterm_diff_area = 0.0;
 
+    PAR = 0.0;
+    PSR = 0.0;
     CAR = 0.0;
     CSR = 0.0;
-    diff_CAR = 0.0;
-    diff_CSR = 0.0;
   }
 };
 
@@ -182,8 +187,7 @@ class AntennaChecker
                  NodeInfoList& node_info_list,
                  LayerToNodes& layer_to_nodes,
                  Violations& antenna_violations);
-  void calculateViaPar(NodeInfo& info);
-  void calculateWirePar(NodeInfo& info);
+  void calculateNodePar(NodeInfo& info);
   bool checkPAR(odb::dbNet* db_net,
                 NodeInfo& info,
                 float ratio_margin,

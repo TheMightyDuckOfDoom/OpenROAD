@@ -41,7 +41,7 @@ static bool IsCombinational(sta::LibertyCell* cell)
   }
   return (!cell->isClockGate() && !cell->isPad() && !cell->isMacro()
           && !cell->hasSequentials() && !cell->isLevelShifter()
-          && !cell->isIsolationCell() && !cell->isClockGate());
+          && !cell->isIsolationCell() && !cell->isMemory());
 }
 
 static int CountOutputPins(sta::LibertyCell* cell)
@@ -78,6 +78,10 @@ static bool HasNonInputOutputPorts(sta::LibertyCell* cell)
 
 static bool isCompatibleWithAbc(sta::LibertyCell* cell)
 {
+  if(cell->dontUse()) {
+    return false;
+  }
+
   if (!IsCombinational(cell)) {
     return false;
   }
@@ -213,6 +217,12 @@ std::vector<abc::SC_Pin*> AbcLibraryFactory::CreateAbcOutputPins(
       output_pin->max_out_slew = time_unit->staToUser(max_output_slew);
     }
 
+    if(cell_port->function() == nullptr) {
+      logger_->error(utl::RMP,
+                     20,
+                     "cell port function is null for cell {}:{}",
+                     cell->name(), cell_port->name());
+    }
     output_pin->func_text = strdup(cell_port->function()->to_string().c_str());
 
     // Get list of input ports

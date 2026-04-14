@@ -1493,6 +1493,7 @@ void RepairDesign::repairNetWire(
     // offset from instance origin to pin and detailed placement movement.
     constexpr double length_margin = .05;
     bool split_wire = false;
+    const char* split_reason = nullptr;
     // Distance from repeater to ref_.
     //              length
     // from----------------------------to/ref
@@ -1512,6 +1513,7 @@ void RepairDesign::repairNetWire(
                  units_->distanceUnit()->asString(dbuToMeters(max_length_), 1));
       split_length = min(max(max_length_ - wire_length_ref, 0), length / 2);
       split_wire = true;
+      split_reason = "wire_length";
     }
     if (wire_cap > 0.0 && load_cap > max_cap_) {
       debugPrint(logger_,
@@ -1526,6 +1528,7 @@ void RepairDesign::repairNetWire(
       split_length = min(split_length,
                          max(metersToDbu((max_cap_ - ref_cap) / wire_cap), 0));
       split_wire = true;
+      split_reason = "wire_cap";
     }
     if (load_slew > max_load_slew_margined) {
       debugPrint(logger_,
@@ -1563,6 +1566,7 @@ void RepairDesign::repairNetWire(
         split_length = 0;
       }
       split_wire = true;
+      split_reason = "wire_slew";
     }
 
     if (split_wire) {
@@ -1587,7 +1591,7 @@ void RepairDesign::repairNetWire(
       int buf_x = to_x + d * dx;
       int buf_y = to_y + d * dy;
       float repeater_cap, repeater_fanout;
-      if (!makeRepeater("wire",
+      if (!makeRepeater(split_reason,
                         odb::Point(buf_x, buf_y),
                         buffer_cell,
                         /* resize= */ true,

@@ -2501,7 +2501,8 @@ void Resizer::resizeSlackPreamble()
 
 // Run repair_design to repair long wires and max slew, capacitance and fanout
 // violations. Find the slacks, and then undo all changes to the netlist.
-void Resizer::findResizeSlacks(bool run_journal_restore)
+void Resizer::findResizeSlacks(bool run_journal_restore,
+                               const float ns_area_tradeoff)
 {
   initBlock();
 
@@ -2547,7 +2548,7 @@ void Resizer::findResizeSlacks(bool run_journal_restore)
     // Fully rebuffer doesn't work with global routing parasitics.
     // TODO: fix the function to understand the parasitics from the global
     // routing.
-    fullyRebuffer(nullptr);
+    fullyRebuffer(nullptr, ns_area_tradeoff);
   }
 
   findResizeSlacks1();
@@ -5457,9 +5458,9 @@ void Resizer::copyDontUseFromLiberty()
   }
 }
 
-void Resizer::fullyRebuffer(sta::Pin* user_pin)
+void Resizer::fullyRebuffer(sta::Pin* user_pin, const float ns_area_tradeoff)
 {
-  rebuffer_->fullyRebuffer(user_pin);
+  rebuffer_->fullyRebuffer(user_pin, ns_area_tradeoff);
 }
 
 ////////////////////////////////////////////////////////////////

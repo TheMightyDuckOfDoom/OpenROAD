@@ -2461,9 +2461,9 @@ bool Resizer::replaceCell(sta::Instance* inst,
 
     // Legalize the position of the instance in case it leaves the die
     if (estimate_parasitics_->getParasiticsSrc()
-            == est::ParasiticsSrc::global_routing
+            == est::ParasiticsSrc::kGlobalRouting
         || estimate_parasitics_->getParasiticsSrc()
-               == est::ParasiticsSrc::detailed_routing) {
+               == est::ParasiticsSrc::kDetailedRouting) {
       opendp_->legalCellPos(db_network_->staToDb(inst));
     }
     return true;
@@ -2506,8 +2506,8 @@ void Resizer::findResizeSlacks(bool run_journal_restore)
   initBlock();
 
   est::ParasiticsSrc parasitics_src = global_router_->haveRoutes()
-                                          ? est::ParasiticsSrc::global_routing
-                                          : est::ParasiticsSrc::placement;
+                                          ? est::ParasiticsSrc::kGlobalRouting
+                                          : est::ParasiticsSrc::kPlacement;
   estimate_parasitics_->setParasiticsSrc(parasitics_src);
   est::IncrementalParasiticsGuard guard(estimate_parasitics_);
   if (run_journal_restore) {
@@ -2519,7 +2519,7 @@ void Resizer::findResizeSlacks(bool run_journal_restore)
 
   // Start incremental global routing if global routing parasitics are being
   // used.
-  if (parasitics_src == est::ParasiticsSrc::global_routing) {
+  if (parasitics_src == est::ParasiticsSrc::kGlobalRouting) {
     global_router_->startIncremental();
   }
 
@@ -2541,7 +2541,7 @@ void Resizer::findResizeSlacks(bool run_journal_restore)
                                           repaired_net_count);
 
   // End incremental global routing if global routing parasitics were used.
-  if (parasitics_src == est::ParasiticsSrc::global_routing) {
+  if (parasitics_src == est::ParasiticsSrc::kGlobalRouting) {
     global_router_->endIncremental();
   } else {
     // Fully rebuffer doesn't work with global routing parasitics.
@@ -4204,9 +4204,9 @@ void Resizer::repairDesign(double max_wire_length,
                                          match_cell_footprint);
   resizePreamble();
   if (estimate_parasitics_->getParasiticsSrc()
-          == est::ParasiticsSrc::global_routing
+          == est::ParasiticsSrc::kGlobalRouting
       || estimate_parasitics_->getParasiticsSrc()
-             == est::ParasiticsSrc::detailed_routing) {
+             == est::ParasiticsSrc::kDetailedRouting) {
     opendp_->initMacrosAndGrid();
   }
   repair_design_->repairDesign(
@@ -4388,9 +4388,9 @@ bool Resizer::repairSetup(double setup_margin,
                                          match_cell_footprint);
   resizePreamble();
   if (estimate_parasitics_->getParasiticsSrc()
-          == est::ParasiticsSrc::global_routing
+          == est::ParasiticsSrc::kGlobalRouting
       || estimate_parasitics_->getParasiticsSrc()
-             == est::ParasiticsSrc::detailed_routing) {
+             == est::ParasiticsSrc::kDetailedRouting) {
     opendp_->initMacrosAndGrid();
   }
   return repair_setup_->repairSetup(setup_margin,
@@ -4455,9 +4455,9 @@ bool Resizer::repairHold(
 
   resizePreamble();
   if (estimate_parasitics_->getParasiticsSrc()
-          == est::ParasiticsSrc::global_routing
+          == est::ParasiticsSrc::kGlobalRouting
       || estimate_parasitics_->getParasiticsSrc()
-             == est::ParasiticsSrc::detailed_routing) {
+             == est::ParasiticsSrc::kDetailedRouting) {
     opendp_->initMacrosAndGrid();
   }
   return repair_hold_->repairHold(setup_margin,
@@ -4503,9 +4503,9 @@ bool Resizer::recoverPower(float recover_power_percent,
                                          match_cell_footprint);
   resizePreamble();
   if (estimate_parasitics_->getParasiticsSrc()
-          == est::ParasiticsSrc::global_routing
+          == est::ParasiticsSrc::kGlobalRouting
       || estimate_parasitics_->getParasiticsSrc()
-             == est::ParasiticsSrc::detailed_routing) {
+             == est::ParasiticsSrc::kDetailedRouting) {
     opendp_->initMacrosAndGrid();
   }
   return recover_power_->recoverPower(recover_power_percent, verbose);
@@ -4517,9 +4517,9 @@ void Resizer::swapArithModules(int path_count,
 {
   resizePreamble();
   if (estimate_parasitics_->getParasiticsSrc()
-          == est::ParasiticsSrc::global_routing
+          == est::ParasiticsSrc::kGlobalRouting
       || estimate_parasitics_->getParasiticsSrc()
-             == est::ParasiticsSrc::detailed_routing) {
+             == est::ParasiticsSrc::kDetailedRouting) {
     opendp_->initMacrosAndGrid();
   }
   est::IncrementalParasiticsGuard guard(estimate_parasitics_);
@@ -5117,9 +5117,9 @@ sta::Instance* Resizer::makeInstance(sta::LibertyCell* cell,
   setLocation(db_inst, loc);
   // Legalize the position of the instance in case it leaves the die
   if (estimate_parasitics_->getParasiticsSrc()
-          == est::ParasiticsSrc::global_routing
+          == est::ParasiticsSrc::kGlobalRouting
       || estimate_parasitics_->getParasiticsSrc()
-             == est::ParasiticsSrc::detailed_routing) {
+             == est::ParasiticsSrc::kDetailedRouting) {
     opendp_->legalCellPos(db_inst);
   }
   designAreaIncr(area(db_inst->getMaster()));
@@ -5130,9 +5130,9 @@ void Resizer::insertBufferPostProcess(dbInst* buffer_inst)
 {
   // Legalize the cell position for accurate parasitic estimation
   if (estimate_parasitics_->getParasiticsSrc()
-          == est::ParasiticsSrc::global_routing
+          == est::ParasiticsSrc::kGlobalRouting
       || estimate_parasitics_->getParasiticsSrc()
-             == est::ParasiticsSrc::detailed_routing) {
+             == est::ParasiticsSrc::kDetailedRouting) {
     opendp_->legalCellPos(buffer_inst);
   }
 

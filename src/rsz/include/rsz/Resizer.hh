@@ -470,7 +470,7 @@ class Resizer : public sta::dbStaState, public sta::dbNetworkObserver
   //  restore resized gates
   // resizeSlackPreamble must be called before the first findResizeSlacks.
   void resizeSlackPreamble();
-  void findResizeSlacks(bool run_journal_restore, float ns_area_tradeoff);
+  void findResizeSlacks(bool run_journal_restore, float ns_area_tradeoff, bool fully_rebuffer = true);
   // Return nets with worst slack.
   sta::NetSeq resizeWorstSlackNets();
   // Return net slack, if any (indicated by the bool).

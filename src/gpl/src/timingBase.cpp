@@ -126,9 +126,30 @@ void TimingBase::setTimingNetWeightMax(float max)
 
 bool TimingBase::executeTimingDriven(bool run_journal_restore)
 {
-  rs_->findResizeSlacks(run_journal_restore, tbVars_.negativeSlackAreaTradeoff);
+  rs_->findResizeSlacks(run_journal_restore, tbVars_.negativeSlackAreaTradeoff, false);
 
   if (!run_journal_restore) {
+    std::vector<rsz::MoveType>
+        sequence;               // empty sequence means all moves enabled
+    rs_->repairSetup(0.0,       // setup_margin
+                     1.0,       // repair_tns_end_percent
+                     10000.0,   // max_passes
+                     400,       // max_iterations
+                     1,         // max_repairs_per_pass
+                     false,     // match_cell_footprint
+                     true,      // verbose
+                     sequence,  // sequence
+                     "",        // phases
+                     false,     // skip_pin_swap
+                     false,     // skip_gate_cloning
+                     false,     // skip_size_down
+                     false,     // skip_buffering
+                     false,     // skip_buffer_removal
+                     false,     // skip_last_gasp
+                     false,     // skip_vt_swap
+                     false      // skip_crit_vt_swap
+    );
+
     nbc_->fixPointers();
   }
 

@@ -34,6 +34,7 @@ add_library(gpl_lib
   src/fft.cpp
   src/fftsg.cpp
   src/fftsg2d.cpp
+  src/registerClusterBase.cpp
   src/routeBase.cpp
   src/timingBase.cpp
   src/graphicsNone.cpp
@@ -62,6 +63,7 @@ target_include_directories(gpl_lib
 )
 
 target_link_libraries(gpl_lib
+    cts_lib
     utl_lib
     Eigen3::Eigen
     odb
@@ -75,6 +77,7 @@ target_link_libraries(gpl_lib
 
 target_link_libraries(gpl
   PRIVATE
+    cts
     gpl_lib
     utl_lib
     Eigen3::Eigen

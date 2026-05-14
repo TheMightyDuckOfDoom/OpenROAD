@@ -28,6 +28,7 @@ namespace gpl {
 class PlacerBase;
 class PlacerBaseCommon;
 class Instance;
+class RegisterClusterBase;
 class RouteBase;
 class TimingBase;
 
@@ -42,6 +43,7 @@ class NesterovPlace
                 std::vector<std::shared_ptr<NesterovBase>>& nbVec,
                 std::shared_ptr<RouteBase> rb,
                 std::shared_ptr<TimingBase> tb,
+                std::shared_ptr<RegisterClusterBase> rcb,
                 std::unique_ptr<AbstractGraphics> graphics,
                 utl::Logger* log);
   ~NesterovPlace();
@@ -128,6 +130,7 @@ class NesterovPlace
   utl::Logger* log_ = nullptr;
   std::shared_ptr<RouteBase> rb_;
   std::shared_ptr<TimingBase> tb_;
+  std::shared_ptr<RegisterClusterBase> rcb_;
   NesterovPlaceVars npVars_;
   std::unique_ptr<AbstractGraphics> graphics_;
 

@@ -36,6 +36,8 @@ cc_library(
         "src/placerBase.cpp",
         "src/placerBase.h",
         "src/point.h",
+        "src/registerClusterBase.cpp",
+        "src/registerClusterBase.h",
         "src/replace.cpp",
         "src/routeBase.cpp",
         "src/routeBase.h",
@@ -61,6 +63,7 @@ cc_library(
     ],
     deps = [
         "//:ord",
+        "//src/cts",
         "//src/dbSta",
         "//src/dbSta:dbNetwork",
         "//src/grt",
@@ -95,6 +98,7 @@ cc_binary(
     linkopts = PYTHON_EXTENSION_LINKOPTS,
     linkshared = True,
     deps = [
+        "//src/cts",
         "//src/gpl",
         "//src/odb/src/db",
         "//src/utl",

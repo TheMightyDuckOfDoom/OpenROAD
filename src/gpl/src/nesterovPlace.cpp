@@ -20,6 +20,7 @@
 #include "nesterovBase.h"
 #include "odb/db.h"
 #include "placerBase.h"
+#include "registerClusterBase.h"
 #include "routeBase.h"
 #include "timingBase.h"
 #include "utl/Logger.h"
@@ -34,6 +35,7 @@ NesterovPlace::NesterovPlace(const NesterovPlaceVars& npVars,
                              std::vector<std::shared_ptr<NesterovBase>>& nbVec,
                              std::shared_ptr<RouteBase> rb,
                              std::shared_ptr<TimingBase> tb,
+                             std::shared_ptr<RegisterClusterBase> rcb,
                              std::unique_ptr<gpl::AbstractGraphics> graphics,
                              utl::Logger* log)
     : npVars_(npVars)
@@ -44,6 +46,7 @@ NesterovPlace::NesterovPlace(const NesterovPlaceVars& npVars,
   nbVec_ = nbVec;
   rb_ = std::move(rb);
   tb_ = std::move(tb);
+  rcb_ = std::move(rcb);
   log_ = log;
 
   db_cbk_ = std::make_unique<nesterovDbCbk>(this);
@@ -436,7 +439,10 @@ void NesterovPlace::runTimingDriven(int iter,
       nb_gcells_before_td += nb->getGCells().size();
     }
 
-    bool shouldTdProceed = tb_->executeTimingDriven(virtual_td_iter);
+    rcb_->executeRegisterClustering();
+
+    bool shouldTdProceed = true;
+    // bool shouldTdProceed = tb_->executeTimingDriven(virtual_td_iter);
     // TODO remove fillers for TD iterations
     // for (auto& nesterov : nbVec_) {
     //   nesterov->cutFillerCells(nbc_->getDeltaArea());

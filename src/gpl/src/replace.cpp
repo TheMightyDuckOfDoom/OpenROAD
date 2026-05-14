@@ -19,6 +19,7 @@
 #include "odb/db.h"
 #include "odb/util.h"
 #include "placerBase.h"
+#include "registerClusterBase.h"
 #include "routeBase.h"
 #include "rsz/Resizer.hh"
 #include "sta/StaMain.hh"
@@ -30,12 +31,13 @@ namespace gpl {
 
 using utl::GPL;
 
-Replace::Replace(odb::dbDatabase* odb,
+Replace::Replace(cts::TritonCTS* cts,
+                 odb::dbDatabase* odb,
                  sta::dbSta* sta,
                  rsz::Resizer* resizer,
                  grt::GlobalRouter* router,
                  utl::Logger* logger)
-    : db_(odb), sta_(sta), rs_(resizer), fr_(router), log_(logger)
+    : cts_(cts), db_(odb), sta_(sta), rs_(resizer), fr_(router), log_(logger)
 {
   graphics_ = std::make_unique<GraphicsNone>();
 }
@@ -274,6 +276,10 @@ bool Replace::initNesterovPlace(const PlaceOptions& options,
     tb_->setTimingNetWeightMax(options.timingNetWeightMax);
   }
 
+  if (!rcb_) {
+    rcb_ = std::make_shared<RegisterClusterBase>(nbc_, cts_, log_);
+  }
+
   if (!np_) {
     NesterovPlaceVars npVars(options);
 
@@ -299,6 +305,7 @@ bool Replace::initNesterovPlace(const PlaceOptions& options,
                                           nbVec_,
                                           rb_,
                                           tb_,
+                                          rcb_,
                                           graphics_->MakeNew(log_),
                                           log_);
   }

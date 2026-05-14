@@ -7,6 +7,10 @@
 #include <string>
 #include <vector>
 
+namespace cts {
+class TritonCTS;
+}
+
 namespace odb {
 class dbDatabase;
 class dbInst;
@@ -35,6 +39,7 @@ class PlacerBaseCommon;
 class PlacerBase;
 class NesterovBaseCommon;
 class NesterovBase;
+class RegisterClusterBase;
 class RouteBase;
 class TimingBase;
 
@@ -101,7 +106,8 @@ class Replace
 {
  public:
   // Create a replace object with no graphics.
-  Replace(odb::dbDatabase* odb,
+  Replace(cts::TritonCTS* cts,
+          odb::dbDatabase* odb,
           sta::dbSta* sta,
           rsz::Resizer* resizer,
           grt::GlobalRouter* router,
@@ -148,6 +154,7 @@ class Replace
                          bool check_density);
   void checkHasCoreRows();
 
+  cts::TritonCTS* cts_ = nullptr;
   odb::dbDatabase* db_ = nullptr;
   sta::dbSta* sta_ = nullptr;
   rsz::Resizer* rs_ = nullptr;
@@ -162,6 +169,7 @@ class Replace
   std::vector<std::shared_ptr<NesterovBase>> nbVec_;
   std::shared_ptr<RouteBase> rb_;
   std::shared_ptr<TimingBase> tb_;
+  std::shared_ptr<RegisterClusterBase> rcb_;
 
   std::unique_ptr<InitialPlace> ip_;
   std::unique_ptr<NesterovPlace> np_;

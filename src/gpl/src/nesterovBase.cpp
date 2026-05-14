@@ -1415,7 +1415,19 @@ FloatPoint NesterovBaseCommon::getWireLengthGradientWA(const GCell* gCell,
 {
   FloatPoint gradientPair;
 
+  if (gCell == nullptr) {
+    log_->error(utl::GPL, 5656, "getWireLengthGradientWA: gCell is nullptr.");
+  }
+
   for (auto& gPin : gCell->gPins()) {
+    if(gPin == nullptr) {
+      log_->error(utl::GPL, 5657, "getWireLengthGradientWA: gPin is nullptr.");
+    }
+    if (gPin->getGNet() == nullptr) {
+      // log_->error(utl::GPL, 5658, "getWireLengthGradientWA: gPin's GNet is nullptr.");
+      continue;
+    }
+
     auto tmpPair = getWireLengthGradientPinWA(gPin, wlCoeffX, wlCoeffY);
 
     debugPrint(log_,
@@ -1718,7 +1730,7 @@ void NesterovBaseCommon::fixPointers()
               "callbacks",
               1,
               "warning: Net not found in db_net_map_ for ITerm: {} -> {}",
-              iterm->getNet()->getName(),
+              iterm->getNet() ? iterm->getNet()->getName() : "nullptr",
               iterm->getName());
         }
       } else {

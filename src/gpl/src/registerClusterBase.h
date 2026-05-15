@@ -27,8 +27,11 @@ class RegisterClusterBase
              utl::Logger* log);
 
   void executeRegisterClustering();
+  void reset();
 
  private:
+  bool has_run_ = false;
+
   utl::Logger* log_ = nullptr;
   std::shared_ptr<NesterovBaseCommon> nbc_;
   cts::TritonCTS* cts_ = nullptr;

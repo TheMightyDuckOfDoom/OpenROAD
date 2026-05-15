@@ -57,6 +57,8 @@ struct PlaceOptions
   int initialPlaceMaxFanout = 200;
   float initialPlaceNetWeightScale = 800;
 
+  bool registerClustering = false;
+
   bool skipIoMode = false;
   bool forceCenterInitialPlace = false;
   bool timingDrivenMode = false;

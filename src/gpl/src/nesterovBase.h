@@ -775,6 +775,8 @@ struct NesterovPlaceVars
   const float routability_snapshot_overflow;
   const float keepResizeBelowOverflow;
 
+  const bool registerClustering;
+
   static constexpr int maxRecursionWlCoef = 10;
   static constexpr int maxRecursionInitSLPCoef = 10;
 

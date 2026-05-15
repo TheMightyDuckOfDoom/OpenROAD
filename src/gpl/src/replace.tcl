@@ -37,7 +37,8 @@ sta::define_cmd_args "global_placement" {\
     [-pad_right pad_right]\
     [-disable_revert_if_diverge]\
     [-disable_pin_density_adjust]\
-    [-enable_routing_congestion]
+    [-enable_routing_congestion]\
+    [-register_clustering]
 }
 
 proc global_placement { args } {
@@ -68,7 +69,8 @@ proc global_placement { args } {
       -incremental \
       -disable_revert_if_diverge \
       -disable_pin_density_adjust \
-      -enable_routing_congestion}
+      -enable_routing_congestion \
+      -register_clustering}
 
   sta::check_argc_eq0 "global_placement" $args
 

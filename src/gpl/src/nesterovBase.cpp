@@ -1097,7 +1097,8 @@ NesterovPlaceVars::NesterovPlaceVars(const PlaceOptions& options)
       keepResizeBelowOverflow(options.keepResizeBelowOverflow),
       timingDrivenMode(options.timingDrivenMode),
       routability_driven_mode(options.routabilityDrivenMode),
-      disableRevertIfDiverge(options.disableRevertIfDiverge)
+      disableRevertIfDiverge(options.disableRevertIfDiverge),
+      registerClustering(options.registerClustering)
 {
 }
 

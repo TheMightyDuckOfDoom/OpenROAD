@@ -439,10 +439,11 @@ void NesterovPlace::runTimingDriven(int iter,
       nb_gcells_before_td += nb->getGCells().size();
     }
 
-    rcb_->executeRegisterClustering();
+    if (npVars_.registerClustering) {
+      rcb_->executeRegisterClustering();
+    }
 
-    bool shouldTdProceed = true;
-    // bool shouldTdProceed = tb_->executeTimingDriven(virtual_td_iter);
+    bool shouldTdProceed = tb_->executeTimingDriven(virtual_td_iter);
     // TODO remove fillers for TD iterations
     // for (auto& nesterov : nbVec_) {
     //   nesterov->cutFillerCells(nbc_->getDeltaArea());
@@ -1062,6 +1063,8 @@ int NesterovPlace::doNesterovPlace(int start_iter)
     graphics_->saveLabeledImage(
         fmt::format("{}/init_nesterov.png", getReportsDir()), label);
   }
+
+  rcb_->reset();
 
   // Core Nesterov Loop
   int nesterov_iter = start_iter;

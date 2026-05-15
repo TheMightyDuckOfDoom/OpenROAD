@@ -29,6 +29,11 @@ RegisterClusterBase::RegisterClusterBase(std::shared_ptr<NesterovBaseCommon> nbc
 
 void RegisterClusterBase::executeRegisterClustering()
 {
+  if (has_run_) {
+    log_->warn(GPL, 9997, "Register clustering has already been executed. Skipping.");
+    return;
+  }
+
   log_->info(GPL, 9999, "---- Execute Register Clustering.");
   if (cts_ == nullptr) {
     log_->error(GPL, 9998, "TritonCTS instance is null. Cannot execute register clustering.");
@@ -36,6 +41,12 @@ void RegisterClusterBase::executeRegisterClustering()
   }
   cts_->runTritonCts();
   nbc_->fixPointers();
+  has_run_ = true;
+}
+
+void RegisterClusterBase::reset()
+{
+  has_run_ = false;
 }
 
 }  // namespace gpl

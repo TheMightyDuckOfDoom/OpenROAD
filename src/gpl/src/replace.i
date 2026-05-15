@@ -73,6 +73,7 @@ static gpl::PlaceOptions getOptions(
   checkKey(keys, "-init_density_penalty", options.initDensityPenaltyFactor);
   checkKey(keys, "-init_wirelength_coef", options.initWireLengthCoef);
   checkKey(keys, "-reference_hpwl", options.referenceHpwl);
+  checkFlag(flags, "-register_clustering", options.registerClustering);
 
   if (auto it = keys.find("-density"); it != keys.end()) {
     if (it->second == "uniform") {

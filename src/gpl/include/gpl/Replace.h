@@ -52,9 +52,11 @@ struct PlaceOptions
   int initialPlaceMaxFanout = 200;
   float initialPlaceNetWeightScale = 800;
 
+  bool verbose = false;
   bool skipIoMode = false;
   bool forceCenterInitialPlace = false;
   bool timingDrivenMode = false;
+  bool timingDrivenUseRepairSetup = false;
   bool routabilityDrivenMode = false;
   bool uniformTargetDensityMode = false;
   std::vector<int> timingNetWeightOverflows{64, 20};

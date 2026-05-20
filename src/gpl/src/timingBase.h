@@ -43,6 +43,8 @@ class TimingBase
 
   void setTimingNetWeightMax(float max);
   void setTimingNetsPercentage(float percentage);
+  void setTimingDrivenUseRepairSetup(bool use_repair_setup);
+  void setVerbose(bool verbose);
 
   // updateNetWeight.
   // True: successfully reweighted gnets
@@ -59,6 +61,8 @@ class TimingBase
   std::vector<int> timingOverflowChk_;
   float net_weight_max_ = 5;
   float nets_percentage_ = 10;
+  bool timing_driven_use_repair_setup_ = false;
+  bool verbose_ = false;
   void initTimingOverflowChk();
 };
 

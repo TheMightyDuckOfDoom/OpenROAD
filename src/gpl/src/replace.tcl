@@ -31,11 +31,13 @@ sta::define_cmd_args "global_placement" {\
     [-timing_driven_net_reweight_overflow timing_driven_net_reweight_overflow]\
     [-timing_driven_net_weight_max timing_driven_net_weight_max]\
     [-timing_driven_nets_percentage timing_driven_nets_percentage]\
+    [-timing_driven_use_repair_setup]
     [-pad_left pad_left]\
     [-pad_right pad_right]\
     [-disable_revert_if_diverge]\
     [-disable_pin_density_adjust]\
-    [-enable_routing_congestion]
+    [-enable_routing_congestion]\
+    [-verbose]
 }
 
 proc global_placement { args } {
@@ -66,7 +68,9 @@ proc global_placement { args } {
       -incremental \
       -disable_revert_if_diverge \
       -disable_pin_density_adjust \
-      -enable_routing_congestion}
+      -enable_routing_congestion \
+      -timing_driven_use_repair_setup\
+      -verbose}
 
   sta::check_argc_eq0 "global_placement" $args
 

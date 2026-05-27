@@ -191,6 +191,11 @@ void HierRTLMP::setKeepClusteringData(bool keep_clustering_data)
   keep_clustering_data_ = keep_clustering_data;
 }
 
+void HierRTLMP::setSkipMacroPlacement(bool skip_macro_placement)
+{
+  skip_macro_placement_ = skip_macro_placement;
+}
+
 // Top Level Function
 // The flow of our MacroPlacer is divided into 6 stages.
 // 1) Multilevel Autoclustering:
@@ -212,13 +217,14 @@ void HierRTLMP::setKeepClusteringData(bool keep_clustering_data)
 void HierRTLMP::run()
 {
   runMultilevelAutoclustering();
-  if (skip_macro_placement_) {
-    logger_->info(MPL, 13, "Skipping macro placement.");
-    return;
-  }
 
   if (keep_clustering_data_) {
     commitClusteringDataToDb();
+  }
+
+  if (skip_macro_placement_) {
+    logger_->info(MPL, 13, "Skipping macro placement.");
+    return;
   }
 
   if (!tree_->has_std_cells) {

@@ -45,6 +45,7 @@ class TimingBase
   void setTimingNetsPercentage(float percentage);
   void setTimingDrivenUseRepairSetup(bool use_repair_setup);
   void setVerbose(bool verbose);
+  void setTimingDrivenPinBased(bool pin_based);
 
   // updateNetWeight.
   // True: successfully reweighted gnets
@@ -63,6 +64,7 @@ class TimingBase
   float nets_percentage_ = 10;
   bool timing_driven_use_repair_setup_ = false;
   bool verbose_ = false;
+  bool pin_based_ = false;
   void initTimingOverflowChk();
 };
 

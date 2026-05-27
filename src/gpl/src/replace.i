@@ -68,6 +68,7 @@ static gpl::PlaceOptions getOptions(
   checkKey(keys, "-overflow", options.overflow);
   checkKey(keys, "-timing_driven_net_weight_max", options.timingNetWeightMax);
   checkFlag(flags, "-timing_driven_use_repair_setup", options.timingDrivenUseRepairSetup);
+  checkFlag(flags, "-timing_driven_pin_based", options.timingDrivenPinBased);
   checkKey(
       keys, "-keep_resize_below_overflow", options.keepResizeBelowOverflow);
   checkKey(keys, "-timing_driven_nets_percentage", options.timingDrivenNetsPercentage);

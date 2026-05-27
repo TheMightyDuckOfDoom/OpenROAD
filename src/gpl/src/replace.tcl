@@ -31,7 +31,8 @@ sta::define_cmd_args "global_placement" {\
     [-timing_driven_net_reweight_overflow timing_driven_net_reweight_overflow]\
     [-timing_driven_net_weight_max timing_driven_net_weight_max]\
     [-timing_driven_nets_percentage timing_driven_nets_percentage]\
-    [-timing_driven_use_repair_setup]
+    [-timing_driven_use_repair_setup]\
+    [-timing_driven_pin_based]\
     [-pad_left pad_left]\
     [-pad_right pad_right]\
     [-disable_revert_if_diverge]\
@@ -73,6 +74,7 @@ proc global_placement { args } {
       -disable_pin_density_adjust \
       -enable_routing_congestion \
       -timing_driven_use_repair_setup\
+      -timing_driven_pin_based\
       -verbose\
       -simple_net_weighting }
 

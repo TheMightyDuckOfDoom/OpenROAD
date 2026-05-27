@@ -275,6 +275,7 @@ bool Replace::initNesterovPlace(const PlaceOptions& options,
     tb_->setTimingNetsPercentage(options.timingDrivenNetsPercentage);
     tb_->setTimingDrivenUseRepairSetup(options.timingDrivenUseRepairSetup);
     tb_->setVerbose(options.verbose);
+    tb_->setTimingDrivenPinBased(options.timingDrivenPinBased);
   }
 
   if (!np_) {

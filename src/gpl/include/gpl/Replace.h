@@ -56,6 +56,7 @@ struct PlaceOptions
   float pulsedPlacementOverflow = 0.2;
   int pulsedPlacementIterations = 5;
   float pulsedPlacementWeightFactor = 1000.0;
+  float pulsedPlacementEndWeightFactor = 1000.0;
 
   bool clusterNetBased = false;
   float clusterNetBasedWeight = 10;

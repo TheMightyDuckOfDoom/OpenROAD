@@ -1148,10 +1148,11 @@ int NesterovPlace::doNesterovPlace(int start_iter)
   int nesterov_iter = start_iter;
   const bool pulsed_placement_enabled = nbc_->getNbVars().pulsedPlacement;
   const float pulsed_placement_overflow = nbc_->getNbVars().pulsedPlacementOverflow;
-  const float pulsed_placement_weight_increase = nbc_->getNbVars().pulsedPlacementIterations > 1 ? 
-    (nbc_->getNbVars().pulsedPlacementEndWeightFactor - nbc_->getNbVars().pulsedPlacementWeightFactor) / (nbc_->getNbVars().pulsedPlacementIterations - 1) : nbc_->getNbVars().pulsedPlacementEndWeightFactor;
-  float pulsed_placement_weight_factor = nbc_->getNbVars().pulsedPlacementWeightFactor;
-  int pulsed_iter = nbc_->getNbVars().pulsedPlacementIterations;
+  const float pulsed_placement_start_weight = nbc_->getNbVars().pulsedPlacementWeightFactor;
+  const float pulsed_placement_end_weight = nbc_->getNbVars().pulsedPlacementEndWeightFactor;
+  const float pulsed_placement_shape_factor = nbc_->getNbVars().pulsedPlacementShapeFactor;
+  const int pulsed_max_iter = nbc_->getNbVars().pulsedPlacementIterations;
+  int pulsed_iter = 0;
   int pulsed_test_iter = 0;
   for (; nesterov_iter < npVars_.maxNesterovIter; nesterov_iter++) {
     const float prevA = curA;
@@ -1194,15 +1195,15 @@ int NesterovPlace::doNesterovPlace(int start_iter)
     pulsed_test_iter++;
     if (pulsed_placement_enabled &&
         average_overflow_unscaled_ < pulsed_placement_overflow &&
-        pulsed_iter > 0 && pulsed_test_iter > 50) {
+        pulsed_iter < pulsed_max_iter && pulsed_test_iter > 50) {
+      const float pulsed_placement_weight_factor = pulsed_placement_end_weight + (pulsed_placement_start_weight - pulsed_placement_end_weight) * std::pow(1.0f - ((float)pulsed_iter / (float)pulsed_max_iter), pulsed_placement_shape_factor);
       log_->info(GPL, 1000, "Pulsed iteration: {} at {}, overflow: {} < {}, weight_factor: {}, hpwl: {}", pulsed_iter, nesterov_iter, average_overflow_unscaled_, pulsed_placement_overflow, pulsed_placement_weight_factor, nbc_->getHpwl());
       for (auto& nb : nbVec_) {
         float density_penalty = nb->getDensityPenalty();
         float new_density_penalty = density_penalty / pulsed_placement_weight_factor;
         nb->setDensityPenalty(new_density_penalty);
       }
-      pulsed_placement_weight_factor += pulsed_placement_weight_increase;
-      pulsed_iter--;
+      pulsed_iter++;
       pulsed_test_iter = 0;
 
       reportModuleCenters();

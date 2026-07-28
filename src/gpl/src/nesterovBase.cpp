@@ -1091,6 +1091,7 @@ NesterovBaseVars::NesterovBaseVars(const PlaceOptions& options)
       pulsedPlacementIterations(options.pulsedPlacementIterations),
       pulsedPlacementWeightFactor(options.pulsedPlacementWeightFactor),
       pulsedPlacementEndWeightFactor(options.pulsedPlacementEndWeightFactor),
+      pulsedPlacementShapeFactor(options.pulsedPlacementShapeFactor),
       simpleNetWeighting(options.simpleNetWeighting),
       simpleNetWeightingMaxWeight(options.simpleNetWeightingMaxWeight),
       clusterNetBased(options.clusterNetBased),
@@ -3494,6 +3495,8 @@ bool NesterovBase::checkConvergence(int gpl_iter_count,
 
 bool NesterovBase::checkDivergence()
 {
+  return false;
+
   if (sum_overflow_unscaled_ < 0.2f
       && sum_overflow_unscaled_ - minSumOverflow_ >= 0.02f
       && hpwlWithMinSumOverflow_ * 1.2f < prev_hpwl_) {

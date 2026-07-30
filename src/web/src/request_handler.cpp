@@ -256,7 +256,8 @@ static boost::json::object serializeHeatMapOption(
     o["name"] = setting.name;
     o["label"] = setting.label;
     o["value"] = setting.getter();
-  } else {
+  } else if (std::holds_alternative<gui::HeatMapDataSource::MapSettingMultiChoice>(
+                 option)) {
     const auto& setting
         = std::get<gui::HeatMapDataSource::MapSettingMultiChoice>(option);
     o["type"] = "choice";
@@ -268,6 +269,16 @@ static boost::json::object serializeHeatMapOption(
       choices.emplace_back(choice);
     }
     o["choices"] = std::move(choices);
+  } else if (std::holds_alternative<gui::HeatMapDataSource::MapSettingSpinBox>(
+                 option)) {
+    const auto& setting
+        = std::get<gui::HeatMapDataSource::MapSettingSpinBox>(option);
+    o["type"] = "spinbox";
+    o["name"] = setting.name;
+    o["label"] = setting.label;
+    o["value"] = setting.getter();
+    o["min_value"] = setting.min_value;
+    o["max_value"] = setting.max_value;
   }
   return o;
 }

@@ -275,7 +275,8 @@ void NesterovPlace::updateIterGraphics(
     const std::string& routability_driven_dir,
     int routability_driven_revert_count,
     int timing_driven_count,
-    bool& final_routability_image_saved)
+    bool& final_routability_image_saved,
+    bool do_pulsed_iteration)
 {
   if (!graphics_ || !graphics_->enabled() || !npVars_.debug) {
     return;
@@ -306,7 +307,7 @@ void NesterovPlace::updateIterGraphics(
     }
   }
 
-  if (npVars_.debug_generate_images && iter % 10 == 0) {
+  if (npVars_.debug_generate_images) {
     odb::Rect region;
     int width_px = 500;
     odb::Rect bbox = pbc_->db()->getChip()->getBlock()->getBBox()->getBox();
@@ -319,9 +320,34 @@ void NesterovPlace::updateIterGraphics(
                                     timing_driven_count);
     std::string label_name = fmt::format("frame_label_{}", iter);
 
+    log_->info(GPL,
+               1212,
+               "Saving image for iteration {} with label: {}",
+               iter,
+               label);
     graphics_->addFrameLabel(bbox, label, label_name);
-    graphics_->gifAddFrame(
-        placement_gif_key_, region, width_px, dbu_per_pixel, delay);
+    graphics_->setDisplayControl("Heat Maps/Estimated Congestion (RUDY)",
+                                  false);
+
+    if (iter % 10 == 0) {
+      graphics_->gifAddFrame(
+          placement_gif_key_, region, width_px, dbu_per_pixel, delay);
+    }
+    
+    if (do_pulsed_iteration) {
+      log_->info(GPL,
+                 1213,
+                 "Saving RUDY image for iteration {} with label: {}",
+                 iter,
+                 label);
+      graphics_->setDisplayControl("Heat Maps/Estimated Congestion (RUDY)",
+                                  true);
+      graphics_->gifAddFrame(
+          rudy_gif_key_, region, width_px, dbu_per_pixel, delay);
+      graphics_->setDisplayControl("Heat Maps/Estimated Congestion (RUDY)",
+                                    false);
+    }
+
     graphics_->deleteLabel(label_name);
   }
 
@@ -824,7 +850,9 @@ bool NesterovPlace::isConverged(int gpl_iter_count,
   if (num_region_converge == nbVec_.size()) {
     if (graphics_ && graphics_->enabled() && npVars_.debug_generate_images) {
       graphics_->gifEnd(placement_gif_key_);
+      graphics_->gifEnd(rudy_gif_key_);
       placement_gif_key_ = -1;
+      rudy_gif_key_ = -1;
     }
     return true;
   }
@@ -1131,10 +1159,17 @@ int NesterovPlace::doNesterovPlace(int start_iter)
     if (placement_gif_key_ != -1) {
       graphics_->gifEnd(placement_gif_key_);
     }
-    const std::string gif_name
+    if (rudy_gif_key_ != -1) {
+      graphics_->gifEnd(rudy_gif_key_);
+    }
+    const std::string placement_gif_name
         = (start_iter == 0) ? "placement.gif" : "placement_stage2.gif";
+    const std::string rudy_gif_name
+        = (start_iter == 0) ? "rudy.gif" : "rudy_stage2.gif";
     placement_gif_key_
-        = graphics_->gifStart(fmt::format("{}/{}", reports_dir, gif_name));
+        = graphics_->gifStart(fmt::format("{}/{}", reports_dir, placement_gif_name));
+    rudy_gif_key_
+        = graphics_->gifStart(fmt::format("{}/{}", reports_dir, rudy_gif_name));
   }
   if (graphics_ && graphics_->enabled() && npVars_.debug_generate_images) {
     updateDb();
@@ -1152,6 +1187,8 @@ int NesterovPlace::doNesterovPlace(int start_iter)
   const float pulsed_placement_end_weight = nbc_->getNbVars().pulsedPlacementEndWeightFactor;
   const float pulsed_placement_shape_factor = nbc_->getNbVars().pulsedPlacementShapeFactor;
   const int pulsed_max_iter = nbc_->getNbVars().pulsedPlacementIterations;
+  const bool pulsed_routability_enabled = nbc_->getNbVars().pulsedRoutability;
+  bool save_image = false;
   int pulsed_iter = 0;
   int pulsed_test_iter = 0;
   for (; nesterov_iter < npVars_.maxNesterovIter; nesterov_iter++) {
@@ -1177,12 +1214,23 @@ int NesterovPlace::doNesterovPlace(int start_iter)
 
     updateNextIter(nesterov_iter);
 
-    updateIterGraphics(nesterov_iter,
-                       reports_dir,
-                       routability_driven_dir,
-                       routability_driven_revert_count,
-                       timing_driven_count,
-                       final_routability_image_saved);
+    pulsed_test_iter++;
+    bool do_pulsed_iteration = pulsed_placement_enabled &&
+        average_overflow_unscaled_ < pulsed_placement_overflow &&
+        pulsed_iter < pulsed_max_iter && pulsed_test_iter > 50;
+
+    if (do_pulsed_iteration) {
+      save_image = true;
+    }
+    if (save_image) {
+      updateIterGraphics(nesterov_iter,
+                        reports_dir,
+                        routability_driven_dir,
+                        routability_driven_revert_count,
+                        timing_driven_count,
+                        final_routability_image_saved,
+                        do_pulsed_iteration);
+    }
 
     bool is_routability_gpl_iter
         = is_routability_snapshot_saved
@@ -1192,10 +1240,7 @@ int NesterovPlace::doNesterovPlace(int start_iter)
       ++npVars_.maxNesterovIter;
     }
 
-    pulsed_test_iter++;
-    if (pulsed_placement_enabled &&
-        average_overflow_unscaled_ < pulsed_placement_overflow &&
-        pulsed_iter < pulsed_max_iter && pulsed_test_iter > 50) {
+    if (do_pulsed_iteration) {
       const float pulsed_placement_weight_factor = pulsed_placement_end_weight + (pulsed_placement_start_weight - pulsed_placement_end_weight) * std::pow(1.0f - ((float)pulsed_iter / (float)pulsed_max_iter), pulsed_placement_shape_factor);
       log_->info(GPL, 1000, "Pulsed iteration: {} at {}, overflow: {} < {}, weight_factor: {}, hpwl: {}", pulsed_iter, nesterov_iter, average_overflow_unscaled_, pulsed_placement_overflow, pulsed_placement_weight_factor, nbc_->getHpwl());
       for (auto& nb : nbVec_) {
@@ -1207,6 +1252,11 @@ int NesterovPlace::doNesterovPlace(int start_iter)
       pulsed_test_iter = 0;
 
       reportModuleCenters();
+
+      if (pulsed_routability_enabled) {
+        log_->info(GPL, 1018, "Pulsed routability");
+        rb_->pulsedRoutability();
+      }
     }
 
     runTimingDriven(nesterov_iter,

@@ -58,6 +58,7 @@ struct PlaceOptions
   float pulsedPlacementWeightFactor = 1000.0;
   float pulsedPlacementEndWeightFactor = 1000.0;
   float pulsedPlacementShapeFactor = 1.0;
+  bool pulsedRoutability = false;
 
   bool clusterNetBased = false;
   float clusterNetBasedWeight = 10;
@@ -97,6 +98,10 @@ struct PlaceOptions
   float routabilityTargetRcMetric = 1.01;
   float routabilityInflationRatioCoef = 2;
   float routabilityMaxInflationRatio = 3;
+
+  float rudyMaxNetAspectRatio = 30.0;
+  int rudyAspectRatioMaxPins = 6;
+  int rudyBlurRadius = 20;
 
   // routability RC metric coefficients
   float routabilityRcK1 = 1.0;

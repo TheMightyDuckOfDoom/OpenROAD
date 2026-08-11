@@ -1092,6 +1092,7 @@ NesterovBaseVars::NesterovBaseVars(const PlaceOptions& options)
       pulsedPlacementWeightFactor(options.pulsedPlacementWeightFactor),
       pulsedPlacementEndWeightFactor(options.pulsedPlacementEndWeightFactor),
       pulsedPlacementShapeFactor(options.pulsedPlacementShapeFactor),
+      pulsedPlacementWarmupIterations(options.pulsedPlacementWarmupIterations),
       pulsedRoutability(options.pulsedRoutability),
       simpleNetWeighting(options.simpleNetWeighting),
       simpleNetWeightingMaxWeight(options.simpleNetWeightingMaxWeight),

@@ -1631,7 +1631,16 @@ int GlobalRouter::getGridTileSize()
 
 void GlobalRouter::getCapacityReductionData(CapacityReductionData& cap_red_data)
 {
+  refreshCapacityReductions();
   fastroute_->getCapacityReductionData(cap_red_data);
+}
+
+void GlobalRouter::refreshCapacityReductions()
+{
+  int min_layer, max_layer;
+  getMinMaxLayer(min_layer, max_layer);
+  setCapacities(min_layer, max_layer);
+  applyAdjustments(min_layer, max_layer);
 }
 
 void GlobalRouter::computeTrackConsumption(

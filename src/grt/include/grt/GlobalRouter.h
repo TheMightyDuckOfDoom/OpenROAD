@@ -402,6 +402,7 @@ class GlobalRouter
   void computeTrackConsumption(const Net* net,
                                int8_t& track_consumption,
                                std::vector<int8_t>*& edge_costs_per_layer);
+  void refreshCapacityReductions();
 
   // aux functions
   std::vector<RoutePt> findOnGridPositions(const Pin& pin,
